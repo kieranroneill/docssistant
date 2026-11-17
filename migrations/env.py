@@ -4,8 +4,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import URL, engine_from_config, pool
 
-from api import utilities
-from api.models.defaults import BaseModel
+from api.platform.postgres.models import BaseModel
 
 # gets alembic.ini file
 config = context.config
