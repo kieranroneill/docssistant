@@ -1,0 +1,41 @@
+{
+  "name": "docssistant",
+  "private": true,
+  "description": "Docssistant.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kieranroneill/docssistant"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@10.3.0",
+  "scripts": {
+    "build": "vite build web",
+    "dev": "vite web",
+    "format": "prettier --write . \"!**/.postgres/**\" \"!**/.ollama/**\"",
+    "lint": "eslint .",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "i18next": "^26.3.1",
+    "react": "^19",
+    "react-dom": "^19",
+    "react-i18next": "^17.0.8"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.0.2",
+    "@commitlint/config-conventional": "^21.0.2",
+    "@commitlint/types": "^21.0.1",
+    "@types/node": "^24",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.1.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.7",
+    "prettier": "^3.4.3",
+    "typescript": "5.7.3",
+    "vite": "^8.3.5",
+    "vite-tsconfig-paths": "^6.1.1"
+  }
+}
