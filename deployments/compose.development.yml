@@ -2,7 +2,7 @@ services:
   api:
     build:
       context: ../
-      dockerfile: ./build/package/api/Dockerfile
+      dockerfile: ./build/package/api/Dockerfile.development
     container_name: docssistant_api
     depends_on:
       ollama:
@@ -92,7 +92,7 @@ services:
   web:
     build:
       context: ../
-      dockerfile: ./build/package/web/Dockerfile
+      dockerfile: ./build/package/web/Dockerfile.development
     container_name: docssistant_web
     depends_on:
       api:

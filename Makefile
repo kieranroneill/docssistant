@@ -39,7 +39,7 @@ install_py_deps:
 
 dev:
 	docker compose \
-	 	-f ./deployments/compose.yml \
+	 	-f ./deployments/compose.development.yml \
 	 	--env-file .env.dev \
 		up \
 		--build
@@ -48,17 +48,17 @@ dev:
 # database
 ###
 
-migrations_downgrade:
+migrations_downgrade_dev:
 	docker compose \
-		-f ./deployments/compose.yml \
+		-f ./deployments/compose.development.yml \
 		run \
 		--build \
 		--rm api \
 		alembic downgrade -1
 
-migrations_upgrade:
+migrations_upgrade_dev:
 	docker compose \
-		-f ./deployments/compose.yml \
+		-f ./deployments/compose.development.yml \
 		run \
 		--build \
 		--rm api \
@@ -67,7 +67,7 @@ migrations_upgrade:
 create_migration:
 	test -n "$(MESSAGE)" || (echo 'Usage: make create_migration MESSAGE="adds boats table"' && exit 1)
 	docker compose \
-		-f ./deployments/compose.yml \
+		-f ./deployments/compose.development.yml \
 		 run \
 		--build \
 		 --rm api \
