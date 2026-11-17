@@ -1,0 +1,120 @@
+services:
+  api:
+    build:
+      context: ../
+      dockerfile: ./build/package/api/Dockerfile.development
+    container_name: docssistant_api
+    depends_on:
+      ollama:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      API_PORT: ${API_PORT:-3000}
+      API_RELOAD: ${API_RELOAD:-true}
+      DESCRIPTION: ${DESCRIPTION:-"Docssistant."}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
+      POSTGRES_DB: ${POSTGRES_DB:-docssistant}
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_SSL_MODE: ${POSTGRES_SSL_MODE:-disable}
+      TITLE: ${TITLE:-Docsistant}
+    healthcheck:
+      test: [ 'CMD', 'curl', '-fsS', 'http://127.0.0.1:${API_PORT:-3000}/healthcheck' ]
+      interval: 5s
+      retries: 10
+      start_period: 10s
+      timeout: 5s
+    image: kieranroneill/docssistant-api:development
+    networks:
+      - docssistant_network
+    ports:
+      - '${API_PORT:-3000}:${API_PORT:-3000}'
+    volumes:
+      # watch for changes on source code
+      - ../alembic.ini:/app/alembic.ini:cached
+      - ../api:/app/api:cached
+      - ../migrations:/app/migrations:cached
+      - ../pyproject.toml:/app/pyproject.toml:cached
+
+  ollama:
+    build:
+      context: ../
+      dockerfile: ./build/package/ollama/Dockerfile
+    container_name: docssistant_ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    environment:
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:11434/api/tags']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    image: kieranroneill/docssistant-ollama:development
+    networks:
+      - docssistant_network
+    ports:
+      - '11434:11434'
+    volumes:
+      - ../.ollama:/root/.ollama
+
+  postgres:
+    container_name: docssistant_postgres
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-docssistant}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -d ${POSTGRES_DB:-docssistant} -U ${POSTGRES_USER:-postgres}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - docssistant_network
+    ports:
+      - '${POSTGRES_PORT:-5432}:${POSTGRES_PORT:-5432}'
+    volumes:
+      - ../.postgres:/var/lib/postgresql/data
+
+  web:
+    build:
+      context: ../
+      dockerfile: ./build/package/web/Dockerfile.development
+    container_name: docssistant_web
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_BASE_URL: ${API_BASE_URL:-http://api:3000}
+      NODE_ENV: ${ENVIRONMENT:-development}
+      NEXT_PUBLIC_DESCRIPTION: ${DESCRIPTION:-"Docssistant."}
+      NEXT_PUBLIC_LOG_LEVEL: ${LOG_LEVEL:-debug}
+      NEXT_PUBLIC_TITLE: ${TITLE:-Docssistant}
+    image: kieranroneill/docssistant-web:development
+    networks:
+      - docssistant_network
+    ports:
+      - '8080:8080'
+    volumes:
+      # watch for changes on web source code
+      - ../node_modules:/app/node_modules:cached
+      - ../package.json:/app/package.json:cached
+      - ../pnpm-lock.yaml:/app/pnpm-lock.yaml:cached
+      - ../web:/app/web:cached
+
+networks:
+  docssistant_network:
+    name: docssistant_network
