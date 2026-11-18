@@ -1,20 +1,16 @@
 from api.platform.defaults.dtos import BaseDTO
 
 
-class Usage(BaseDTO):
-    input_tokens: int
-    output_tokens: int
-    total_tokens: int
+class ChatMessage(BaseDTO, frozen=True):
+    content: str
+    role: str
 
 
-class ChatResult(BaseDTO):
+class ChatResult(BaseDTO, frozen=True):
+    content: str
     created_at: str
-    content: str
+    input_tokens: int
     model: str
+    output_tokens: int
     role: str
-    usage: Usage
-
-
-class Message(BaseDTO):
-    content: str
-    role: str
+    total_tokens: int

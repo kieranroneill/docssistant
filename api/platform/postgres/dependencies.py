@@ -1,10 +1,12 @@
 from collections.abc import AsyncIterator
 
 from fastapi import Request
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from api.platform.postgres.clients import PostgresClient
 
 
-async def get_postgres(request: Request) -> AsyncIterator[AsyncSession]:
+async def get_session(request: Request) -> AsyncIterator[AsyncSession]:
     """
     Create a Postgres session for the active request lifecycle.
 
@@ -14,7 +16,7 @@ async def get_postgres(request: Request) -> AsyncIterator[AsyncSession]:
     Returns:
         AsyncIterator[AsyncSession]: An asynchronous iterator yielding a database session for the request.
     """
-    session_factory: async_sessionmaker[AsyncSession] = request.app.state.postgres_session_factory
+    postgres: PostgresClient = request.app.state.postgres
 
-    async with session_factory() as session:
+    async with postgres.create_session() as session:
         yield session

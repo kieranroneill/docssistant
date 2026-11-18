@@ -1,7 +1,11 @@
 from fastapi import Request
 
-from .clients import AgentClient
+from .clients import ChatAgent, EmbeddingsAgent
 
 
-def get_agent(request: Request) -> AgentClient:
-    return request.app.state.agent
+def get_chat_agent(request: Request) -> ChatAgent:
+    return request.app.state.chat_agent
+
+
+def get_embeddings_agent(request: Request) -> EmbeddingsAgent:
+    return request.app.state.embeddings_agent

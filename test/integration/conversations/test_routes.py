@@ -1,5 +1,5 @@
 from logging import Logger
-from test.mocks.platform.agents.clients import MockAgentClient
+from test.mocks.platform.agents.clients import MockChatAgent
 from uuid import uuid4
 
 import pytest
@@ -26,8 +26,8 @@ class TestChatEndpoint:
         mocker,
     ) -> None:
         mocker.patch(
-            "api.app.AgentClient",
-            return_value=MockAgentClient(logger=logger),
+            "api.app.ChatAgent",
+            return_value=MockChatAgent(logger=logger),
         )
 
         with TestClient(app) as client:
@@ -45,8 +45,8 @@ class TestChatEndpoint:
         mocker,
     ) -> None:
         mocker.patch(
-            "api.app.AgentClient",
-            return_value=MockAgentClient(
+            "api.app.ChatAgent",
+            return_value=MockChatAgent(
                 logger=logger,
             ),
         )
@@ -68,7 +68,7 @@ class TestChatEndpoint:
         conversation_id = uuid4()
         query = "Can you tell me a joke?"
         response = "I can show you a joke, go look in the mirror."
-        agent = MockAgentClient(
+        chat_agent = MockChatAgent(
             chat_response=response,
             logger=logger,
         )
@@ -104,7 +104,7 @@ class TestChatEndpoint:
                             conversation_id=conversation_id,
                             created_at=created_at,
                             id=uuid4(),
-                            model=agent.model(),
+                            model=chat_agent.model(),
                             role="assistant",
                             sequence_number=1,
                             usage=Usage(
@@ -119,8 +119,8 @@ class TestChatEndpoint:
             )
 
         mocker.patch(
-            "api.app.AgentClient",
-            return_value=agent,
+            "api.app.ChatAgent",
+            return_value=chat_agent,
         )
 
         with TestClient(app) as client:
@@ -154,8 +154,8 @@ class TestChatEndpoint:
         response = "Hello! How can I help you today?"
 
         mocker.patch(
-            "api.app.AgentClient",
-            return_value=MockAgentClient(
+            "api.app.ChatAgent",
+            return_value=MockChatAgent(
                 chat_response=response,
                 logger=logger,
             ),
