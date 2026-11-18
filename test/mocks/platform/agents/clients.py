@@ -8,10 +8,10 @@ from api.platform.datetime.utilities import now, to_iso_string
 class MockAgentClient(AbstractAgentClient):
     _chat_response: str | None
 
-    def __init__(self, logger: Logger) -> None:
+    def __init__(self, logger: Logger, chat_response: str | None = None) -> None:
         super().__init__(logger=logger)
 
-        self._chat_response = None
+        self._chat_response = chat_response
 
     ##
     # public methods

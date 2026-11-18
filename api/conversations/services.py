@@ -1,16 +1,16 @@
 from logging import Logger
 from uuid import UUID, uuid4
 
-from fastapi import HTTPException, status
+from fastapi import status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.platform.agents.clients import AbstractAgentClient
 from api.platform.agents.dtos import Message
-from api.platform.application.enums import ErrorCode
+from api.platform.application.errors import InternalServerError
 from api.platform.defaults.services import BaseService
-from api.platform.http.responses import ErrorResponse
 
 from .dtos import Conversation, ConversationMessage, Usage
+from .errors import ConversationNotFoundError
 from .repositories import ConversationMessageRepository, ConversationRepository
 
 
@@ -43,12 +43,8 @@ class Service(BaseService):
         except Exception as e:
             self._logger.error(f"failed to get a response from the agent: {e}")
 
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=ErrorResponse(
-                    code=ErrorCode.INTERNAL_SERVER_ERROR.value,
-                    message="failed to get a response from the agent",
-                ),
+            raise InternalServerError(message="failed to get a response from the agent").to_http_exception(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
         self._logger.debug(f"got a response from the agent: {result}")
@@ -95,28 +91,22 @@ class Service(BaseService):
             conversation = await self._conversation_repository.get_by_id_with_messages(_id=conversation.id)
 
             if conversation is None:
-                raise Exception("failed to save conversation")
+                raise Exception("conversation is empty")
 
             return conversation
-        except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=ErrorResponse(
-                    code=ErrorCode.INTERNAL_SERVER_ERROR.value,
-                    message="failed to save conversation",
-                ),
+        except Exception as e:
+            self._logger.error(f"failed to save conversation '{conversation_id}': {e}")
+
+            raise InternalServerError(message="failed to save conversation").to_http_exception(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
     async def _chat_with_conversation_id(self, query: str, conversation_id: UUID) -> Conversation:
         conversation = await self._conversation_repository.get_by_id_with_messages(_id=conversation_id)
 
         if conversation is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=ErrorResponse(
-                    code=ErrorCode.CONVERSATION_NOT_FOUND_ERROR.value,
-                    message=f"conversation '{conversation_id}' not found",
-                ),
+            raise ConversationNotFoundError(message=f"conversation '{conversation_id}' not found").to_http_exception(
+                status_code=status.HTTP_404_NOT_FOUND
             )
 
         messages = [Message(content=message.content, role=message.role) for message in conversation.messages]
@@ -133,12 +123,8 @@ class Service(BaseService):
         except Exception as e:
             self._logger.error(f"failed to get a response from the agent for conversation '{conversation_id}': {e}")
 
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=ErrorResponse(
-                    code=ErrorCode.INTERNAL_SERVER_ERROR.value,
-                    message="failed to get a response from the agent",
-                ),
+            raise InternalServerError(message="failed to get a response from the agent").to_http_exception(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
         sequence = len(conversation.messages) + 1
@@ -178,16 +164,12 @@ class Service(BaseService):
             conversation = await self._conversation_repository.get_by_id_with_messages(_id=conversation.id)
 
             if conversation is None:
-                raise Exception("failed to save conversation")
+                raise Exception
 
             return conversation
         except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=ErrorResponse(
-                    code=ErrorCode.INTERNAL_SERVER_ERROR.value,
-                    message="failed to save conversation",
-                ),
+            raise InternalServerError(message="failed to get a response from the agent").to_http_exception(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
     ###
