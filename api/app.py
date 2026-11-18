@@ -4,15 +4,18 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from api import healthcheck
+from api.conversations.routes import router as conversations_router
+from api.healthcheck.routes import router as healthcheck_router
 from api.platform.agents.clients import AgentClient
 
 
 def _create_app() -> FastAPI:
     title = os.environ["TITLE"]
-    _app = FastAPI(title=f"{title} API")
+    _app = FastAPI(lifespan=_lifespan, title=f"{title} API")
 
-    _app.include_router(healthcheck.routes.router)
+    # add routers
+    _app.include_router(conversations_router)
+    _app.include_router(healthcheck_router)
 
     return _app
 

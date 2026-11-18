@@ -85,7 +85,7 @@ services:
     networks:
       - docssistant_network_dev
     ports:
-      - '${POSTGRES_PORT:-5432}:${POSTGRES_PORT:-5432}'
+      - '${POSTGRES_PORT:-5432}:5432'
     volumes:
       - ../.postgres:/var/lib/postgresql/data
 

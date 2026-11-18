@@ -1,4 +1,5 @@
 import os
+from abc import ABC, abstractmethod
 
 from langchain.agents import create_agent
 from langchain_ollama import ChatOllama
@@ -9,7 +10,16 @@ from api.platform.datetime.utilities import timestamp
 from .dtos import ChatResult, Message, Usage
 
 
-class AgentClient:
+class AbstractAgentClient(ABC):
+    ##
+    # public methods
+    ##
+    @abstractmethod
+    async def chat(self, query: str, messages: list[Message]) -> ChatResult:
+        pass
+
+
+class AgentClient(AbstractAgentClient):
     _agent: CompiledStateGraph
     _model: ChatOllama
 

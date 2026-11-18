@@ -2,7 +2,7 @@ from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
 
-from api.platform.agents.clients import AgentClient
+from api.platform.agents.clients import AbstractAgentClient
 from api.platform.application.enums import ErrorCode
 from api.platform.http.responses import ErrorResponse
 
@@ -10,8 +10,8 @@ from .dtos import ConversationMessage
 from .models import ConversationMessageModel, ConversationModel
 
 
-class Controller:
-    def __init__(self, agent: AgentClient):
+class Service:
+    def __init__(self, agent: AbstractAgentClient):
         self._agent = agent
 
     ###

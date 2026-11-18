@@ -108,7 +108,17 @@ lint_py:
 ###
 
 test:
+	${MAKE} test_integration
 	${MAKE} test_unit
+
+test_integration:
+	${MAKE} test_py_integration
+
+test_py_integration:
+	@echo ">>> running python integration tests"
+	python3 -m venv .venv
+	source .venv/bin/activate && \
+		./scripts/test_py_integration.bash
 
 test_unit:
 	${MAKE} test_py_unit
@@ -117,4 +127,4 @@ test_py_unit:
 	@echo ">>> running python unit tests"
 	python3 -m venv .venv
 	source .venv/bin/activate && \
-		python3 -m pytest
+		python3 -m pytest test/unit

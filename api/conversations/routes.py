@@ -5,9 +5,9 @@ from fastapi import APIRouter, Depends, status
 from api.platform.agents.clients import AgentClient
 from api.platform.agents.dependencies import get_agent
 
-from .controllers import Controller
 from .dtos import ConversationMessage
 from .requests import ChatRequest
+from .services import Service
 
 router = APIRouter(
     prefix="/api/conversations",
@@ -25,9 +25,9 @@ async def chat_with_conversation_id(
     request: ChatRequest,
     agent: AgentClient = Depends(get_agent),
 ) -> ConversationMessage:
-    controller = Controller(agent=agent)
+    service = Service(agent=agent)
 
-    return await controller.chat(conversation_id=conversation_id, query=request.query)
+    return await service.chat(conversation_id=conversation_id, query=request.query)
 
 
 @router.post(
@@ -39,6 +39,6 @@ async def chat(
     request: ChatRequest,
     agent: AgentClient = Depends(get_agent),
 ) -> ConversationMessage:
-    controller = Controller(agent=agent)
+    service = Service(agent=agent)
 
-    return await controller.chat(query=request.query)
+    return await service.chat(query=request.query)
