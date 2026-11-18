@@ -5,7 +5,7 @@ from langchain.agents import create_agent
 from langchain_ollama import ChatOllama
 from langgraph.graph.state import CompiledStateGraph
 
-from api.platform.datetime.utilities import timestamp
+from api.platform.datetime.utilities import now, to_iso_string
 
 from .dtos import ChatResult, Message, Usage
 
@@ -62,7 +62,7 @@ class AgentClient(AbstractAgentClient):
 
         return ChatResult(
             content=content,
-            created_at=metadata.get("created_at", timestamp()),
+            created_at=metadata.get("created_at", to_iso_string(now())),
             model=model,
             role="assistant",
             usage=Usage(

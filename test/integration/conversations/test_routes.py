@@ -13,6 +13,7 @@ def agent_client() -> MockAgentClient:
 
 class TestChatEndpoint:
     def test_with_empty_query(
+        self,
         mocker,
         agent_client: MockAgentClient,
     ) -> None:

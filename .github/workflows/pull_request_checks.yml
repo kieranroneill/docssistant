@@ -23,6 +23,17 @@ jobs:
   # tests
   ##
 
+  test_py_integration:
+    name: 'Integration Tests: Python'
+    runs-on: ubuntu-latest
+    steps:
+      - name: '🛎 Checkout'
+        uses: actions/checkout@v4
+      - name: '🐍 Setup Python'
+        uses: ./.github/actions/use-python-dependencies
+      - name: '🧪 Test'
+        run: ./scripts/test_py_integration.bash
+
   test_py_unit:
     name: 'Unit Tests: Python'
     runs-on: ubuntu-latest
@@ -32,4 +43,4 @@ jobs:
       - name: '🐍 Setup Python'
         uses: ./.github/actions/use-python-dependencies
       - name: '🧪 Test'
-        run: python -m pytest
+        run: python -m pytest test/unit

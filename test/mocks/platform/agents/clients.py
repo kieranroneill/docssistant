@@ -1,6 +1,6 @@
 from api.platform.agents.clients import AbstractAgentClient
 from api.platform.agents.dtos import ChatResult, Message, Usage
-from api.platform.datetime.utilities import timestamp
+from api.platform.datetime.utilities import to_iso_string
 
 
 class MockAgentClient(AbstractAgentClient):
@@ -16,7 +16,7 @@ class MockAgentClient(AbstractAgentClient):
     async def chat(self, query: str, messages: list[Message]) -> ChatResult:
         return ChatResult(
             content=self._chat_response or "I am unable to help you with that request.",
-            created_at=timestamp(),
+            created_at=to_iso_string(),
             model="test_model",
             role="assistant",
             usage=Usage(
