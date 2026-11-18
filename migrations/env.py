@@ -4,7 +4,9 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import URL, engine_from_config, pool
 
-from api.platform.postgres.models import BaseModel
+# import models here:
+import api.conversations.models  # noqa: F401
+from api.platform.defaults.models import BaseModel
 
 # gets alembic.ini file
 config = context.config

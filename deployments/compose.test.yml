@@ -1,0 +1,21 @@
+services:
+  postgres:
+    container_name: docssistant_postgres_test
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-docssistant}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -d ${POSTGRES_DB:-docssistant_} -U ${POSTGRES_USER:-postgres}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - docssistant_network_test
+    ports:
+      - '${POSTGRES_PORT:-5433}:5432'
+
+networks:
+  docssistant_network_test:
+    name: docssistant_network_test

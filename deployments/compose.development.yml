@@ -2,8 +2,8 @@ services:
   api:
     build:
       context: ../
-      dockerfile: ./build/package/api/Dockerfile.development
-    container_name: docssistant_api
+      dockerfile: ./build/package/api/Dockerfile
+    container_name: docssistant_api_dev
     depends_on:
       ollama:
         condition: service_healthy
@@ -32,7 +32,7 @@ services:
       timeout: 5s
     image: kieranroneill/docssistant-api:development
     networks:
-      - docssistant_network
+      - docssistant_network_dev
     ports:
       - '${API_PORT:-3000}:${API_PORT:-3000}'
     volumes:
@@ -46,7 +46,7 @@ services:
     build:
       context: ../
       dockerfile: ./build/package/ollama/Dockerfile
-    container_name: docssistant_ollama
+    container_name: docssistant_ollama_dev
     deploy:
       resources:
         reservations:
@@ -64,14 +64,14 @@ services:
       start_period: 20s
     image: kieranroneill/docssistant-ollama:development
     networks:
-      - docssistant_network
+      - docssistant_network_dev
     ports:
       - '11434:11434'
     volumes:
       - ../.ollama:/root/.ollama
 
   postgres:
-    container_name: docssistant_postgres
+    container_name: docssistant_postgres_dev
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-docssistant}
@@ -83,9 +83,9 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      - docssistant_network
+      - docssistant_network_dev
     ports:
-      - '${POSTGRES_PORT:-5432}:${POSTGRES_PORT:-5432}'
+      - '${POSTGRES_PORT:-5432}:5432'
     volumes:
       - ../.postgres:/var/lib/postgresql/data
 
@@ -93,7 +93,7 @@ services:
     build:
       context: ../
       dockerfile: ./build/package/web/Dockerfile.development
-    container_name: docssistant_web
+    container_name: docssistant_web_dev
     depends_on:
       api:
         condition: service_healthy
@@ -105,7 +105,7 @@ services:
       NEXT_PUBLIC_TITLE: ${TITLE:-Docssistant}
     image: kieranroneill/docssistant-web:development
     networks:
-      - docssistant_network
+      - docssistant_network_dev
     ports:
       - '8080:8080'
     volumes:
@@ -115,6 +115,33 @@ services:
       - ../pnpm-lock.yaml:/app/pnpm-lock.yaml:cached
       - ../web:/app/web:cached
 
+  ###
+  # tools
+  ###
+
+  alembic:
+    build:
+      context: ../
+      dockerfile: ./build/package/alembic/Dockerfile
+    container_name: docssistant_alembic_dev
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-docssistant}
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    image: kieranroneill/docssistant-alembic:development
+    networks:
+      - docssistant_network_dev
+    profiles: [ 'tools' ]
+    volumes:
+      - ../alembic.ini:/app/alembic.ini:ro
+      - ../api:/app/api:ro
+      - ../migrations:/app/migrations
+
 networks:
-  docssistant_network:
-    name: docssistant_network
+  docssistant_network_dev:
+    name: docssistant_network_dev

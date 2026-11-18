@@ -1,7 +1,10 @@
 SHELL := /bin/bash
+COMPOSE_DEV := docker compose \
+    -f ./deployments/compose.development.yml \
+    --env-file .env.dev \
+    -p docssistant-dev
 
-.PHONY: create_migration dev install install_js_deps install_py_deps install_py_dev_deps format format_js format_py migrations_downgrade migrations_upgrade test test_unit test_py_unit
-
+.PHONY: create_migration dev install install_js_deps install_py_deps install_py_dev_deps format format_js format_py migrations_downgrade_dev migrations_upgrade_dev test test_unit test_py_unit
 
 all: install
 
@@ -38,9 +41,7 @@ install_py_deps:
 ###
 
 dev:
-	docker compose \
-	 	-f ./deployments/compose.development.yml \
-	 	--env-file .env.dev \
+	$(COMPOSE_DEV) \
 		up \
 		--build
 
@@ -49,29 +50,26 @@ dev:
 ###
 
 migrations_downgrade_dev:
-	docker compose \
-		-f ./deployments/compose.development.yml \
+	$(COMPOSE_DEV) \
 		run \
 		--build \
-		--rm api \
-		alembic downgrade -1
+		--rm alembic \
+		downgrade -1
 
 migrations_upgrade_dev:
-	docker compose \
-		-f ./deployments/compose.development.yml \
+	$(COMPOSE_DEV) \
 		run \
 		--build \
-		--rm api \
-		alembic upgrade head
+		--rm alembic \
+		upgrade head
 
 create_migration:
 	test -n "$(MESSAGE)" || (echo 'Usage: make create_migration MESSAGE="adds boats table"' && exit 1)
-	docker compose \
-		-f ./deployments/compose.development.yml \
+	$(COMPOSE_DEV) \
 		 run \
 		--build \
-		 --rm api \
-		alembic revision --autogenerate -m "$(MESSAGE)"
+		 --rm alembic \
+		revision --autogenerate -m "$(MESSAGE)"
 
 ###
 # formatting
@@ -110,7 +108,17 @@ lint_py:
 ###
 
 test:
+	${MAKE} test_integration
 	${MAKE} test_unit
+
+test_integration:
+	${MAKE} test_py_integration
+
+test_py_integration:
+	@echo ">>> running python integration tests"
+	python3 -m venv .venv
+	source .venv/bin/activate && \
+		./scripts/test_py_integration.bash
 
 test_unit:
 	${MAKE} test_py_unit
@@ -119,4 +127,4 @@ test_py_unit:
 	@echo ">>> running python unit tests"
 	python3 -m venv .venv
 	source .venv/bin/activate && \
-		python3 -m pytest
+		python3 -m pytest test/unit

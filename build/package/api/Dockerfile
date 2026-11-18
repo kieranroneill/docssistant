@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
@@ -10,18 +10,13 @@ WORKDIR /app
 COPY ./pip-requirements.txt .
 RUN pip install --no-cache-dir -r pip-requirements.txt
 
-# install dev dependencies
-COPY ./dev-requirements.txt .
-RUN pip install --no-cache-dir -r dev-requirements.txt
-
 # install dependencies
 COPY ./requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # copy source files
-COPY ./alembic.ini .
 COPY ./pyproject.toml .
-COPY ./api .
-COPY ./migrations .
+COPY ./api ./api
+COPY ./migrations ./migrations
 
 CMD ["python", "-m", "api.main"]
