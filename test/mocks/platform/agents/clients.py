@@ -21,7 +21,7 @@ class MockAgentClient(AbstractAgentClient):
         return ChatResult(
             content=self._chat_response or "I am unable to help you with that request.",
             created_at=to_iso_string(now()),
-            model="test_model",
+            model="test-chat-model",
             role="assistant",
             usage=Usage(
                 input_tokens=0,
@@ -30,8 +30,11 @@ class MockAgentClient(AbstractAgentClient):
             ),
         )
 
-    def model(self) -> str:
-        return "test_model"
+    def chat_model(self) -> str:
+        return "test-chat-model"
+
+    def embeddings_model(self) -> str:
+        return "test-embed-model"
 
     def set_chat_response(self, chat_response: str) -> None:
         self._chat_response = chat_response
