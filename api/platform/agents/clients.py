@@ -1,5 +1,6 @@
 import os
 from abc import ABC, abstractmethod
+from logging import Logger
 
 from langchain.agents import create_agent
 from langchain_ollama import ChatOllama
@@ -11,11 +12,16 @@ from .dtos import ChatResult, Message, Usage
 
 
 class AbstractAgentClient(ABC):
+    _logger: Logger
+
+    def __init__(self, logger: Logger):
+        self._logger = logger
+
     ##
     # public methods
     ##
     @abstractmethod
-    async def chat(self, query: str, messages: list[Message]) -> ChatResult:
+    async def chat(self, messages: list[Message]) -> ChatResult:
         pass
 
 
@@ -23,7 +29,9 @@ class AgentClient(AbstractAgentClient):
     _agent: CompiledStateGraph
     _model: ChatOllama
 
-    def __init__(self):
+    def __init__(self, logger: Logger):
+        super().__init__(logger=logger)
+
         base_url = os.environ["OLLAMA_BASE_URL"]
 
         if base_url is None:
@@ -48,15 +56,21 @@ class AgentClient(AbstractAgentClient):
             """,
         )
 
-    async def chat(self, query: str, messages: list[Message]) -> ChatResult:
+    async def chat(self, messages: list[Message]) -> ChatResult:
         result = await self._agent.ainvoke(
             {
-                "messages": messages.copy().append(Message(content=query, role="user")),
+                "messages": [
+                    {
+                        "content": message.content,
+                        "role": message.role,
+                    }
+                    for message in messages
+                ]
             }
         )
         last = result["messages"][-1]
         content = last.content or ""
-        metadata = last.metadata or {}
+        metadata = last.response_metadata or {}
         model = metadata.get("model") or metadata.get("model_name") or self._model.model
         usage = last.usage_metadata or {}
 

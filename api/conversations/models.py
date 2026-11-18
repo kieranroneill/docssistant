@@ -1,7 +1,17 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func, text
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -10,6 +20,11 @@ from api.platform.defaults.models import BaseModel
 
 class ConversationMessageModel(BaseModel):
     __tablename__ = "conversation_messages"
+    __table_args__ = (
+        UniqueConstraint("conversation_id", "sequence_number", name="uq_message_conversation_sequence"),
+        Index("ix_message_conversation_created", "conversation_id", "created_at"),
+        Index("ix_message_conversation_sequence", "conversation_id", "sequence_number"),
+    )
 
     # primary key
     id: Mapped[uuid.UUID] = mapped_column(
@@ -43,6 +58,7 @@ class ConversationMessageModel(BaseModel):
 
 class ConversationModel(BaseModel):
     __tablename__ = "conversations"
+    __table_args__ = (Index("ix_conversations_active", "active"),)
 
     # primary key
     id: Mapped[uuid.UUID] = mapped_column(
@@ -69,5 +85,5 @@ class ConversationModel(BaseModel):
     # relationships
     messages: Mapped[list["ConversationMessageModel"]] = relationship(
         order_by="ConversationMessageModel.sequence_number",
-        passive_deletes="all",
+        cascade="all, delete-orphan",
     )

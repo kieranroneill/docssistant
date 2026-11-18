@@ -4,11 +4,12 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api.app import app
+from api.platform.logging.utilities import get_logger
 
 
 @pytest.fixture
 def agent_client() -> MockAgentClient:
-    return MockAgentClient()
+    return MockAgentClient(logger=get_logger())
 
 
 class TestChatEndpoint:

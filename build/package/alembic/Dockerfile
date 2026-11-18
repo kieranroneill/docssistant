@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # copy source files
 COPY ./alembic.ini .
-COPY ./api .
-COPY ./migrations .
+COPY ./api ./api
+COPY ./migrations ./migrations
 
 ENTRYPOINT ["alembic"]

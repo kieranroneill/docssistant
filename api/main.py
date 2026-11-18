@@ -5,7 +5,7 @@ import uvicorn
 
 
 def main() -> None:
-    logging.basicConfig(format="%(levelname)s: %(message)s", level=os.getenv("LOG_LEVEL", "info").upper())
+    logging.basicConfig(format="%(levelname)s: %(message)s", level=os.getenv("LOG_LEVEL", "INFO").upper())
 
     uvicorn.run(
         "api.app:app",

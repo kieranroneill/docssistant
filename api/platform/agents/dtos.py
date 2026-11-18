@@ -1,5 +1,3 @@
-from typing import Literal
-
 from api.platform.defaults.dtos import BaseDTO
 
 
@@ -13,10 +11,10 @@ class ChatResult(BaseDTO):
     created_at: str
     content: str
     model: str
-    role: Literal["assistant", "user"]
+    role: str
     usage: Usage
 
 
 class Message(BaseDTO):
     content: str
-    role: Literal["assistant", "user"]
+    role: str

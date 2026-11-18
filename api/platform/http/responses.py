@@ -1,6 +1,7 @@
-from api.platform.defaults.dtos import BaseDTO
+from dataclasses import dataclass
 
 
-class ErrorResponse(BaseDTO):
+@dataclass(frozen=True)
+class ErrorResponse:
     code: int
     message: str
