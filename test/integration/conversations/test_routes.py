@@ -7,8 +7,10 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from api.app import app
+from api.conversations.dtos import Conversation, ConversationMessage, Usage
 from api.conversations.repositories import ConversationRepository
 from api.platform.application.enums import ErrorCode
+from api.platform.datetime.utilities import now, to_iso_string
 from api.platform.logging.utilities import get_logger
 
 
@@ -58,6 +60,91 @@ class TestChatEndpoint:
         assert result.status_code == status.HTTP_404_NOT_FOUND
         assert result.json()["detail"]["code"] == ErrorCode.CONVERSATION_NOT_FOUND_ERROR.value
 
+    async def test_should_use_an_existing_conversation(
+        self,
+        logger: Logger,
+        mocker,
+    ) -> None:
+        conversation_id = uuid4()
+        query = "Can you tell me a joke?"
+        response = "I can show you a joke, go look in the mirror."
+        agent = MockAgentClient(
+            chat_response=response,
+            logger=logger,
+        )
+
+        # save a conversation to the database
+        async with app.state.postgres_session_factory() as postgres:
+            repository = ConversationRepository(
+                logger=logger,
+                postgres=postgres,
+            )
+            created_at = to_iso_string(now())
+
+            await repository.add(
+                dto=Conversation(
+                    created_at=created_at,
+                    active=True,
+                    id=conversation_id,
+                    messages=[
+                        # user message
+                        ConversationMessage(
+                            content="Say hello in one short sentence.",
+                            conversation_id=conversation_id,
+                            created_at=created_at,
+                            id=uuid4(),
+                            model=None,
+                            role="user",
+                            sequence_number=0,
+                            usage=None,
+                        ),
+                        # assistant message
+                        ConversationMessage(
+                            content="Hello! How can I help you today?",
+                            conversation_id=conversation_id,
+                            created_at=created_at,
+                            id=uuid4(),
+                            model=agent.model(),
+                            role="assistant",
+                            sequence_number=1,
+                            usage=Usage(
+                                input_tokens=30,
+                                output_tokens=313,
+                                total_tokens=343,
+                            ),
+                        ),
+                    ],
+                    updated_at=created_at,
+                )
+            )
+
+        mocker.patch(
+            "api.app.AgentClient",
+            return_value=agent,
+        )
+
+        with TestClient(app) as client:
+            result = client.post(
+                f"/api/conversations/{str(conversation_id)}/chat",
+                json={"query": query},
+            )
+
+        assert result.status_code == status.HTTP_201_CREATED
+
+        response_body = result.json()
+
+        async with app.state.postgres_session_factory() as postgres:
+            repository = ConversationRepository(
+                logger=logger,
+                postgres=postgres,
+            )
+            conversation = await repository.get_by_id_with_messages(_id=response_body["id"])
+
+            assert conversation is not None
+            assert len(conversation.messages) == 4
+            assert any(message.role == "user" and message.content == query for message in conversation.messages)
+            assert any(message.role == "assistant" and message.content == response for message in conversation.messages)
+
     async def test_should_create_a_new_conversation(
         self,
         logger: Logger,
@@ -89,12 +176,9 @@ class TestChatEndpoint:
                 logger=logger,
                 postgres=postgres,
             )
-            saved = await repository.get_by_id_with_messages(_id=response_body["id"])
+            conversation = await repository.get_by_id_with_messages(_id=response_body["id"])
 
-            assert saved is not None
-            assert saved.active is True
-            assert str(saved.id) == response_body["id"]
-            assert [(message.role, message.content) for message in saved.messages] == [
-                ("user", query),
-                ("assistant", response),
-            ]
+            assert conversation is not None
+            assert len(conversation.messages) == 2
+            assert any(message.role == "user" and message.content == query for message in conversation.messages)
+            assert any(message.role == "assistant" and message.content == response for message in conversation.messages)

@@ -30,5 +30,8 @@ class MockAgentClient(AbstractAgentClient):
             ),
         )
 
+    def model(self) -> str:
+        return "test_model"
+
     def set_chat_response(self, chat_response: str) -> None:
         self._chat_response = chat_response

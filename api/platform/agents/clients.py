@@ -24,6 +24,10 @@ class AbstractAgentClient(ABC):
     async def chat(self, messages: list[Message]) -> ChatResult:
         pass
 
+    @abstractmethod
+    def model(self) -> str:
+        pass
+
 
 class AgentClient(AbstractAgentClient):
     _agent: CompiledStateGraph
@@ -85,3 +89,6 @@ class AgentClient(AbstractAgentClient):
                 total_tokens=usage.get("total_tokens", 0),
             ),
         )
+
+    def model(self) -> str:
+        return self._model.model
