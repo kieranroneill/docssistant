@@ -1,13 +1,18 @@
 from logging import Logger
 from test.mocks.agents.clients import MockChatAgent, MockEmbeddingsAgent
-from uuid import uuid4
+from uuid import uuid4, uuid5
 
 import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
 from api.app import app
-from api.conversations.dtos import Conversation, ConversationMessage, Usage
+from api.conversations.dtos import (
+    Conversation,
+    ConversationMessage,
+    ConversationSource,
+    Usage,
+)
 from api.conversations.repositories import ConversationRepository
 from libs.application.enums import ErrorCode
 from libs.datetime.utilities import now, to_iso_string
@@ -98,6 +103,7 @@ class TestChatEndpoint:
                             model=None,
                             role="user",
                             sequence_number=0,
+                            sources=[],
                             usage=None,
                         ),
                         # assistant message
@@ -109,6 +115,16 @@ class TestChatEndpoint:
                             model=chat_agent.model(),
                             role="assistant",
                             sequence_number=1,
+                            sources=[
+                                ConversationSource(
+                                    chunk_index=0,
+                                    document_id=uuid5(uuid4(), "a cool doc"),
+                                    id=uuid4(),
+                                    page_number=34,
+                                    reference=0,
+                                    source="the interent",
+                                ),
+                            ],
                             usage=Usage(
                                 input_tokens=30,
                                 output_tokens=313,

@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from pydantic import Field
 from sqlalchemy import inspect
 
 from libs.datetime.utilities import from_iso_string, to_iso_string
@@ -52,7 +53,7 @@ class ConversationMessage(BaseDTO):
     model: str | None
     role: str
     sequence_number: int
-    sources: list[ConversationSource]
+    sources: list[ConversationSource] = Field(default_factory=list)
     usage: Usage | None
 
     @classmethod
@@ -103,7 +104,7 @@ class Conversation(BaseDTO):
     active: bool
     created_at: str
     id: UUID
-    messages: list[ConversationMessage]
+    messages: list[ConversationMessage] = Field(default_factory=list)
     updated_at: str
 
     @classmethod
