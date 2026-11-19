@@ -32,8 +32,10 @@
 
 ```text
 .
+├─ .documents/                              <-- Raw documents that are indexed by the indexer
+│   └── ...
 ├─ api/                                     <-- API source files - uses a functional layering approach
-│   ├── chat/
+│   ├── <package_name>/
 │   │   └── ...
 │   ├── main.py                             <-- Entrypoint file
 │   └── ...
@@ -46,7 +48,16 @@
 │   └── ...
 ├─ deployments/                             <-- Container orchestration configurations
 │   ├── compose.yml
-│   └── compose.development.yml
+│   ├── compose.development.yml
+│   ├── compose.test.yml
+│   └── ...
+├─ indexer/                                 <-- Indexer worker - scans for documents and indexes them
+│   ├── main.py                             <-- Entrypoint file
+│   └── ...
+├─ libs/                                    <-- Library source files - uses a functional layering approach
+│   ├── <package_name>/
+│   │   └── ...
+│   └── ...
 ├─ migrations/                              <-- Alembic migrations
 │   ├── versions/
 │   │   ├── 19700101000000_create_a_table.sql
@@ -106,37 +117,6 @@ $ make start
 ```bash
 $ make dev
 ```
-
-The API scans `.documents/` recursively at startup for UTF-8 `.txt` and `.md` files
-and text-based PDFs (scanned PDFs require OCR).
-Create the directory and copy your documents there before starting the application:
-
-```shell
-mkdir -p .documents
-cp /path/to/guide.md .documents/
-make dev
-```
-
-Compose mounts this directory read-only at `/app/.documents`. Local API processes
-use `.documents/` at the project root too. Restart the API after adding or editing
-files. Indexing runs in the background; failures are logged and retried on the next
-startup. Empty extraction preserves the previous active version. Files removed
-from disk remain searchable.
-
-Apply the document-version migration before starting this version of the API:
-
-```shell
-make migrations_upgrade_dev
-```
-
-Chroma holds versioned chunks; PostgreSQL publishes one active version per
-document only after all chunks are uploaded. Searches filter by those active
-versions, hiding incomplete uploads. Existing Chroma data must be reindexed by
-the startup scan before it becomes searchable through this filter. Old chunks
-and inactive PostgreSQL rows are retained; automatic history cleanup is not
-implemented. Use one indexer per collection and keep the embedding model
-consistent with that collection. Large stores should eventually use a dedicated
-worker and a more scalable active-version lookup.
 
 <sup>[Back to top ^][table-of-contents]</sup>
 
