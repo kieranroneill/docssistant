@@ -3,9 +3,12 @@ import logging
 import os
 from pathlib import Path
 
-from indexer.services import IndexerService
+from watchfiles import awatch
+
+from indexer.controllers import IndexerController
 from libs.agents.clients import EmbeddingsAgent
 from libs.chroma.clients import ChromaClient
+from libs.documents.constants import SUPPORTED_DOCUMENT_EXTENSIONS
 from libs.logging.utilities import get_logger
 from libs.postgres.clients import PostgresClient
 
@@ -13,26 +16,39 @@ from libs.postgres.clients import PostgresClient
 async def main() -> None:
     logger = get_logger()
     documents_path = Path(__file__).resolve().parent.parent / ".documents"
-    chroma = ChromaClient(logger=logger)
-    embeddings_agent = EmbeddingsAgent(logger=logger)
-    postgres = PostgresClient(logger=logger)
+    chroma_client = ChromaClient(logger=logger)
+    postgres_client = PostgresClient(logger=logger)
 
     try:
-        await chroma.initialize()
+        await chroma_client.initialize()
 
-        async with postgres.create_session() as session:
-            indexer = IndexerService(
-                chroma_collection=await chroma.collection(),
-                embeddings_agent=embeddings_agent,
-                logger=logger,
-                postgres_session=session,
-            )
+        indexer_controller = IndexerController(
+            chroma_client=chroma_client,
+            embeddings_agent=EmbeddingsAgent(logger=logger),
+            logger=logger,
+            postgres_client=postgres_client,
+        )
 
-            indexed = await indexer.index(documents_path=documents_path)
+        # perform an initial pass
+        await indexer_controller.index(documents_path=documents_path)
 
-        logger.info(f"document indexing completed ({indexed} documents indexed)")
+        async for changes in awatch(
+            documents_path,
+            debounce=2000,
+            recursive=True,
+            force_polling=True,
+            step=500,
+            yield_on_timeout=True,
+            rust_timeout=60_000,
+        ):
+            supported_change = any(Path(path).suffix.lower() in SUPPORTED_DOCUMENT_EXTENSIONS for _, path in changes)
+
+            # if there are any file changes, run the indexer
+            if not changes or supported_change:
+                await indexer_controller.index(documents_path=documents_path)
+
     finally:
-        await postgres.dispose()
+        await postgres_client.dispose()
 
 
 if __name__ == "__main__":

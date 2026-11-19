@@ -19,7 +19,7 @@ services:
       CHROMA_PORT: 8000
       DESCRIPTION: ${DESCRIPTION:-"Docssistant."}
       ENVIRONMENT: ${ENVIRONMENT:-development}
-      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
       OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen3:4b}
       OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
@@ -42,12 +42,9 @@ services:
     ports:
       - '${API_PORT:-3000}:${API_PORT:-3000}'
     volumes:
-      - ../.documents:/app/.documents:ro
       # watch for changes on source code
-      - ../alembic.ini:/app/alembic.ini:cached
       - ../api:/app/api:cached
       - ../libs:/app/libs:cached
-      - ../migrations:/app/migrations:cached
       - ../pyproject.toml:/app/pyproject.toml:cached
 
   chroma:
@@ -71,6 +68,40 @@ services:
       - '${CHROMA_PORT:-8000}:8000'
     volumes:
       - ../.chroma:/data
+
+  indexer:
+    build:
+      context: ../
+      dockerfile: ./build/package/indexer/Dockerfile
+    container_name: docssistant_indexer_dev
+    depends_on:
+      chroma:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      CHROMA_COLLECTION: ${CHROMA_COLLECTION:-document_chunks_nomic_v1}
+      CHROMA_HOST: chroma
+      CHROMA_PORT: 8000
+      LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+      POSTGRES_DB: ${POSTGRES_DB:-docssistant}
+      POSTGRES_HOST: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_SSL_MODE: ${POSTGRES_SSL_MODE:-disable}
+    image: kieranroneill/docssistant-indexer:development
+    networks:
+      - docssistant_network_dev
+    volumes:
+      - ../.documents:/app/.documents:ro
+      - ../indexer:/app/indexer:cached
+      - ../libs:/app/libs:cached
+      - ../pyproject.toml:/app/pyproject.toml:cached
 
   ollama:
     build:
@@ -132,7 +163,7 @@ services:
       API_BASE_URL: ${API_BASE_URL:-http://api:3000}
       NODE_ENV: ${ENVIRONMENT:-development}
       NEXT_PUBLIC_DESCRIPTION: ${DESCRIPTION:-"Docssistant."}
-      NEXT_PUBLIC_LOG_LEVEL: ${LOG_LEVEL:-debug}
+      NEXT_PUBLIC_LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
       NEXT_PUBLIC_TITLE: ${TITLE:-Docssistant}
     image: kieranroneill/docssistant-web:development
     networks:

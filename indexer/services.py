@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from libs.agents.clients import AbstractEmbeddingsAgent
 from libs.defaults.services import BaseService
+from libs.documents.constants import SUPPORTED_DOCUMENT_EXTENSIONS
 from libs.documents.dtos import DocumentChunk
 from libs.documents.errors import DocumentPathDoesNotExistError
 from libs.documents.repositories import (
@@ -164,7 +165,7 @@ class IndexerService(BaseService):
         self._logger.info(f"indexing {len(paths)} documents from '{documents_path}'")
 
         for path in paths:
-            if not path.is_file() or path.suffix.lower() not in {".md", ".pdf", ".txt"}:
+            if not path.is_file() or path.suffix.lower() not in SUPPORTED_DOCUMENT_EXTENSIONS:
                 continue
 
             # avoid symlinks that reference outside the documents' directory.
