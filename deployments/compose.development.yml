@@ -17,7 +17,7 @@ services:
       CHROMA_COLLECTION: ${CHROMA_COLLECTION:-document_chunks_nomic_v1}
       CHROMA_HOST: chroma
       CHROMA_PORT: 8000
-      DESCRIPTION: ${DESCRIPTION:-"Docssistant."}
+      DESCRIPTION: ${DESCRIPTION:-"Docssistant is a document chat assistant that uses retrieval-augmented generation (RAG) to answer questions about your documents and cite its sources."}
       ENVIRONMENT: ${ENVIRONMENT:-development}
       LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
@@ -162,7 +162,7 @@ services:
     environment:
       API_BASE_URL: ${API_BASE_URL:-http://api:3000}
       NODE_ENV: ${ENVIRONMENT:-development}
-      NEXT_PUBLIC_DESCRIPTION: ${DESCRIPTION:-"Docssistant."}
+      NEXT_PUBLIC_DESCRIPTION: ${DESCRIPTION:-"Docssistant is a document chat assistant that uses retrieval-augmented generation (RAG) to answer questions about your documents and cite its sources."}
       NEXT_PUBLIC_LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
       NEXT_PUBLIC_TITLE: ${TITLE:-Docssistant}
     image: kieranroneill/docssistant-web:development

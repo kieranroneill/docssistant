@@ -1,7 +1,7 @@
 {
   "name": "docssistant",
   "private": true,
-  "description": "Docssistant.",
+  "description": "Docssistant is a document chat assistant that uses retrieval-augmented generation (RAG) to answer questions about your documents and cite its sources.",
   "repository": {
     "type": "git",
     "url": "https://github.com/kieranroneill/docssistant"
