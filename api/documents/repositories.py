@@ -64,12 +64,13 @@ class Repository:
 
     async def upsert(
         self,
-        ids: list[str],
-        document_id: str,
-        source: str,
-        offset: int,
         chunks: list[DocumentChunk],
+        document_id: str,
         embeddings: list[list[float]],
+        ids: list[str],
+        offset: int,
+        source: str,
+        version: str,
     ) -> None:
         metadatas: list[Metadata] = []
 
@@ -77,6 +78,7 @@ class Repository:
             metadata: Metadata = {
                 "chunk_index": offset + index,
                 "document_id": document_id,
+                "version": version,
                 "source": source,
             }
 

@@ -119,12 +119,13 @@ class DocumentIndexerService(BaseService):
                 return False
 
             await self._documents_repository.upsert(
-                ids=ids[offset : offset + 32],
-                document_id=document_id,
-                source=source,
-                offset=offset,
                 chunks=batch,
+                document_id=document_id,
                 embeddings=embeddings,
+                ids=ids[offset : offset + 32],
+                offset=offset,
+                source=source,
+                version=fingerprint,
             )
 
         # remove stale chunks only after all replacement chunks were written
