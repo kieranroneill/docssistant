@@ -6,7 +6,7 @@ from fastapi import status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from libs.agents.clients import AbstractChatAgent, AbstractEmbeddingsAgent
-from libs.agents.dtos import ChatMessage, ChatResult
+from libs.agents.dtos import ChatMessage, ChatResult, ChatSource
 from libs.application.errors import InternalServerError
 from libs.datetime.utilities import now, to_iso_string
 from libs.defaults.services import BaseService
@@ -15,7 +15,7 @@ from libs.documents.repositories import (
     DocumentVersionRepository,
 )
 
-from .dtos import Conversation, ConversationMessage, Usage
+from .dtos import Conversation, ConversationMessage, ConversationSource, Usage
 from .errors import ConversationNotFoundError
 from .repositories import ConversationMessageRepository, ConversationRepository
 
@@ -51,7 +51,7 @@ class Service(BaseService):
     # private methods
     ###
 
-    async def _call_agents(self, query: str, messages: list[ChatMessage]) -> ChatResult:
+    async def _call_agents(self, query: str, messages: list[ChatMessage]) -> tuple[ChatResult, list[ChatSource]]:
         self._logger.debug(f"calling embeddings agent '{self._embeddings_agent.model()}' with query: '{query}'")
 
         # first we get the embeddings from the embedding agent
@@ -71,17 +71,21 @@ class Service(BaseService):
         if not matches:
             self._logger.debug(f"no document chunks found for the query: '{query}'")
 
-            return ChatResult(
-                content="I couldn’t find relevant information in the available documents.",
-                created_at=to_iso_string(now()),
-                input_tokens=0,
-                model="application",
-                output_tokens=0,
-                role="assistant",
-                total_tokens=0,
+            return (
+                ChatResult(
+                    content="I couldn’t find relevant information in the available documents.",
+                    created_at=to_iso_string(now()),
+                    input_tokens=0,
+                    model="application",
+                    output_tokens=0,
+                    role="assistant",
+                    total_tokens=0,
+                ),
+                [],
             )
 
         excerpts = []
+        sources: list[ChatSource] = []
 
         # create extra context for the model with matched sources
         for number, match in enumerate(matches, start=1):
@@ -91,6 +95,15 @@ class Service(BaseService):
                 location += f", page {match.page_number}"
 
             excerpts.append(f"[{number}] {location}\n{match.content}")
+            sources.append(
+                ChatSource(
+                    chunk_index=match.chunk_index,
+                    document_id=UUID(match.document_id),
+                    page_number=match.page_number,
+                    reference=number,
+                    source=match.source,
+                ),
+            )
 
         # update the query with document excerpts:
         #
@@ -125,10 +138,10 @@ class Service(BaseService):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-        return result
+        return result, sources
 
     async def _chat(self, query: str) -> Conversation:
-        result = await self._call_agents(messages=[], query=query)
+        result, sources = await self._call_agents(messages=[], query=query)
         conversation_id = uuid4()
         sequence = 0
         conversation = Conversation(
@@ -145,6 +158,7 @@ class Service(BaseService):
                     model=None,
                     role="user",
                     sequence_number=sequence,
+                    sources=[],
                     usage=None,
                 ),
                 # assistant message
@@ -156,6 +170,17 @@ class Service(BaseService):
                     model=result.model,
                     role=result.role,
                     sequence_number=sequence + 1,
+                    sources=[
+                        ConversationSource(
+                            chunk_index=source.chunk_index,
+                            document_id=source.document_id,
+                            id=uuid4(),
+                            page_number=source.page_number,
+                            reference=source.reference,
+                            source=source.source,
+                        )
+                        for source in sources
+                    ],
                     usage=Usage(
                         input_tokens=result.input_tokens,
                         output_tokens=result.output_tokens,
@@ -189,7 +214,7 @@ class Service(BaseService):
                 status_code=status.HTTP_404_NOT_FOUND
             )
 
-        result = await self._call_agents(
+        result, sources = await self._call_agents(
             messages=[ChatMessage(content=message.content, role=message.role) for message in conversation.messages],
             query=query,
         )
@@ -207,6 +232,7 @@ class Service(BaseService):
                         model=None,
                         role="user",
                         sequence_number=sequence,
+                        sources=[],
                         usage=None,
                     ),
                     # assistant message
@@ -218,6 +244,17 @@ class Service(BaseService):
                         model=result.model,
                         role=result.role,
                         sequence_number=sequence + 1,
+                        sources=[
+                            ConversationSource(
+                                chunk_index=source.chunk_index,
+                                document_id=source.document_id,
+                                id=uuid4(),
+                                page_number=source.page_number,
+                                reference=source.reference,
+                                source=source.source,
+                            )
+                            for source in sources
+                        ],
                         usage=Usage(
                             input_tokens=result.input_tokens,
                             output_tokens=result.output_tokens,

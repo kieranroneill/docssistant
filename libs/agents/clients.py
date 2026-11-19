@@ -8,7 +8,7 @@ from langgraph.graph.state import CompiledStateGraph
 
 from libs.datetime.utilities import now, to_iso_string
 
-from .dtos import ChatMessage, ChatResult
+from .dtos import ChatMessage, ChatResult, ChatSource
 
 
 class AbstractChatAgent(ABC):

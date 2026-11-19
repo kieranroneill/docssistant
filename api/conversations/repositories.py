@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 from libs.defaults.repositories import BaseRepository
 
 from .dtos import Conversation, ConversationMessage
-from .models import ConversationMessageModel, ConversationModel
+from .models import ConversationMessageModel, ConversationModel, ConversationSourceModel
 
 
 class ConversationMessageRepository(BaseRepository[ConversationMessageModel, ConversationMessage]):
@@ -133,7 +133,7 @@ class ConversationRepository(BaseRepository[ConversationModel, Conversation]):
     async def get_by_id_with_messages(self, _id: UUID) -> Conversation | None:
         statement = (
             select(ConversationModel)
-            .options(selectinload(ConversationModel.messages))
+            .options(selectinload(ConversationModel.messages).selectinload(ConversationMessageModel.sources))
             .where(ConversationModel.id == _id)
         )
         result = await self._postgres_session.execute(statement)
