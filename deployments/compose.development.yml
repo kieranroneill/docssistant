@@ -18,6 +18,7 @@ services:
       CHROMA_HOST: chroma
       CHROMA_PORT: 8000
       DESCRIPTION: ${DESCRIPTION:-"Docssistant."}
+      DOCUMENT_STORE_PATH: /app/document-store
       ENVIRONMENT: ${ENVIRONMENT:-development}
       LOG_LEVEL: ${LOG_LEVEL:-debug}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
@@ -42,6 +43,7 @@ services:
     ports:
       - '${API_PORT:-3000}:${API_PORT:-3000}'
     volumes:
+      - ../.documents:/app/.documents:ro
       # watch for changes on source code
       - ../alembic.ini:/app/alembic.ini:cached
       - ../api:/app/api:cached

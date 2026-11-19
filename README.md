@@ -107,6 +107,25 @@ $ make start
 $ make dev
 ```
 
+The API scans `.documents/` recursively at startup for UTF-8 `.txt` and `.md` files.
+Create the directory and copy your documents there before starting the application:
+
+```shell
+mkdir -p .documents
+cp /path/to/guide.md .documents/
+make dev
+```
+
+Compose mounts this directory read-only at `/app/document-store`. For a local API
+process outside Docker, set `DOCUMENT_STORE_PATH` to an absolute directory path;
+leaving it unset disables indexing. Restart the API after adding or editing files.
+Unchanged documents are skipped, and changed documents replace their previous
+chunks. Files removed from disk remain in Chroma. Indexing errors prevent startup
+and are retried on the next start. Use one API/indexing process per collection;
+large stores should eventually be indexed by a separate worker. The API becomes
+ready after indexing finishes, so large initial imports may require increasing
+the API healthcheck's `start_period`.
+
 <sup>[Back to top ^][table-of-contents]</sup>
 
 ## 📑 4. Appendix

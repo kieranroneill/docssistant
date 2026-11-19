@@ -5,7 +5,7 @@ from chromadb.api.models.AsyncCollection import AsyncCollection
 from fastapi import status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.documents.repositories import Repository as DocumentChunkRepository
+from api.documents.repositories import Repository as DocumentsRepository
 from api.platform.agents.clients import AbstractChatAgent, AbstractEmbeddingsAgent
 from api.platform.agents.dtos import ChatMessage, ChatResult
 from api.platform.application.errors import InternalServerError
@@ -21,7 +21,7 @@ class Service(BaseService):
     _chat_agent: AbstractChatAgent
     _conversation_message_repository: ConversationMessageRepository
     _conversation_repository: ConversationRepository
-    _document_chunk_repository: DocumentChunkRepository
+    _documents_repository: DocumentsRepository
     _embeddings_agent: AbstractEmbeddingsAgent
 
     def __init__(
@@ -35,7 +35,7 @@ class Service(BaseService):
         super().__init__(logger=logger)
 
         self._chat_agent = chat_agent
-        self._document_chunk_repository = DocumentChunkRepository(collection=chroma_collection, logger=logger)
+        self._documents_repository = DocumentsRepository(collection=chroma_collection, logger=logger)
         self._conversation_message_repository = ConversationMessageRepository(logger=logger, postgres=postgres_session)
         self._conversation_repository = ConversationRepository(logger=logger, postgres=postgres_session)
         self._embeddings_agent = embeddings_agent
@@ -57,7 +57,7 @@ class Service(BaseService):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-        matches = await self._document_chunk_repository.search(embeddings=embeddings)
+        matches = await self._documents_repository.search(embeddings=embeddings)
 
         # if not document chunk matches where found, there is no need to continue
         if not matches:
