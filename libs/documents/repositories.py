@@ -1,5 +1,5 @@
 from logging import Logger
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import numpy as np
 from chromadb.api.models.AsyncCollection import AsyncCollection
@@ -165,7 +165,7 @@ class DocumentVersionRepository(BaseRepository[DocumentVersionModel, DocumentVer
         Returns:
             list[DocumentVersion]: A list of active document versions.
         """
-        statement = select(DocumentVersionModel).where(DocumentVersionModel.active == True)
+        statement = select(DocumentVersionModel).where(DocumentVersionModel.active.is_(True))
         result = await self._postgres_session.execute(statement)
         models = result.scalars().all()
 
