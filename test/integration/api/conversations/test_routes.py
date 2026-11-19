@@ -1,5 +1,5 @@
 from logging import Logger
-from test.mocks.platform.agents.clients import MockChatAgent
+from test.mocks.agents.clients import MockChatAgent, MockEmbeddingsAgent
 from uuid import uuid4
 
 import pytest
@@ -11,6 +11,7 @@ from api.conversations.dtos import Conversation, ConversationMessage, Usage
 from api.conversations.repositories import ConversationRepository
 from libs.application.enums import ErrorCode
 from libs.datetime.utilities import now, to_iso_string
+from libs.documents.dtos import DocumentMatch
 from libs.logging.utilities import get_logger
 
 
@@ -19,17 +20,26 @@ def logger() -> Logger:
     return get_logger()
 
 
+@pytest.fixture(autouse=True)
+def agents(
+    logger: Logger,
+    mocker,
+):
+    mocker.patch(
+        "api.app.ChatAgent",
+        return_value=MockChatAgent(logger=logger),
+    )
+    mocker.patch(
+        "api.app.EmbeddingsAgent",
+        return_value=MockEmbeddingsAgent(logger=logger),
+    )
+
+
 class TestChatEndpoint:
     def test_should_fail_with_empty_query(
         self,
         logger: Logger,
-        mocker,
     ) -> None:
-        mocker.patch(
-            "api.app.ChatAgent",
-            return_value=MockChatAgent(logger=logger),
-        )
-
         with TestClient(app) as client:
             result = client.post(
                 "/api/conversations/chat",
@@ -39,18 +49,10 @@ class TestChatEndpoint:
         assert result.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         assert result.json()["detail"][0]["loc"] == ["body", "query"]
 
-    async def test_should_fail_if_no_conversation_exists(
+    def test_should_fail_if_no_conversation_exists(
         self,
         logger: Logger,
-        mocker,
     ) -> None:
-        mocker.patch(
-            "api.app.ChatAgent",
-            return_value=MockChatAgent(
-                logger=logger,
-            ),
-        )
-
         with TestClient(app) as client:
             result = client.post(
                 f"/api/conversations/{uuid4()}/chat",
@@ -74,7 +76,7 @@ class TestChatEndpoint:
         )
 
         # save a conversation to the database
-        async with app.state.postgres_session_factory() as postgres:
+        async with app.state.postgres.create_session() as postgres:
             repository = ConversationRepository(
                 logger=logger,
                 postgres_session=postgres,
@@ -118,9 +120,21 @@ class TestChatEndpoint:
                 )
             )
 
+        # setup mocks
         mocker.patch(
             "api.app.ChatAgent",
             return_value=chat_agent,
+        )
+        mocker.patch(
+            "api.conversations.services.DocumentChunkRepository.search",
+            return_value=[
+                DocumentMatch(
+                    chunk_index=0,
+                    content="Hello! How can I help you today?",
+                    distance=0.0,
+                    document_id="test-document",
+                )
+            ],
         )
 
         with TestClient(app) as client:
@@ -133,7 +147,7 @@ class TestChatEndpoint:
 
         response_body = result.json()
 
-        async with app.state.postgres_session_factory() as postgres:
+        async with app.state.postgres.create_session() as postgres:
             repository = ConversationRepository(
                 logger=logger,
                 postgres_session=postgres,
@@ -160,6 +174,17 @@ class TestChatEndpoint:
                 logger=logger,
             ),
         )
+        mocker.patch(
+            "api.conversations.services.DocumentChunkRepository.search",
+            return_value=[
+                DocumentMatch(
+                    chunk_index=0,
+                    content="Hello! How can I help you today?",
+                    distance=0.0,
+                    document_id="test-document",
+                )
+            ],
+        )
 
         with TestClient(app) as client:
             result = client.post(
@@ -171,7 +196,7 @@ class TestChatEndpoint:
 
         response_body = result.json()
 
-        async with app.state.postgres_session_factory() as postgres:
+        async with app.state.postgres.create_session() as postgres:
             repository = ConversationRepository(
                 logger=logger,
                 postgres_session=postgres,
