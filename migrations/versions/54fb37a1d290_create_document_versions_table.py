@@ -1,4 +1,4 @@
-"""Create document versions for atomic publication of indexed chunks.
+"""create document versions table
 
 Revision ID: 54fb37a1d290
 Revises: 229e3133b85a

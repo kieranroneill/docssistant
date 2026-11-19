@@ -55,6 +55,12 @@ class ConversationMessageModel(BaseModel):
     output_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
     total_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
+    # relationships
+    sources: Mapped[list["ConversationSourceModel"]] = relationship(
+        order_by="ConversationSourceModel.reference",
+        cascade="all, delete-orphan",
+    )
+
 
 class ConversationModel(BaseModel):
     __tablename__ = "conversations"
@@ -87,3 +93,32 @@ class ConversationModel(BaseModel):
         order_by="ConversationMessageModel.sequence_number",
         cascade="all, delete-orphan",
     )
+
+
+class ConversationSourceModel(BaseModel):
+    __tablename__ = "conversation_sources"
+
+    # primary key
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        server_default=text("gen_random_uuid()"),
+    )
+
+    # foreign keys
+    message_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("conversation_messages.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+
+    # data fields
+    chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        nullable=False,
+    )
+    page_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    reference: Mapped[int] = mapped_column(Integer, nullable=False)
+    source: Mapped[str] = mapped_column(String, nullable=False)
