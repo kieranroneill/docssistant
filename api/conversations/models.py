@@ -15,7 +15,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from api.platform.defaults.models import BaseModel
+from libs.defaults.models import BaseModel
 
 
 class ConversationMessageModel(BaseModel):

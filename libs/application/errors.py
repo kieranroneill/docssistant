@@ -1,4 +1,4 @@
-from api.platform.defaults.errors import BaseError
+from libs.defaults.errors import BaseError
 
 from .enums import ErrorCode
 

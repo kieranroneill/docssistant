@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from api.platform.defaults.repositories import BaseRepository
+from libs.defaults.repositories import BaseRepository
 
 from .dtos import Conversation, ConversationMessage
 from .models import ConversationMessageModel, ConversationModel
@@ -13,6 +13,7 @@ class ConversationMessageRepository(BaseRepository[ConversationMessageModel, Con
     ##
     # private methods
     ##
+
     @property
     def _model_type(self) -> type[ConversationMessageModel]:
         return ConversationMessageModel
@@ -26,6 +27,7 @@ class ConversationMessageRepository(BaseRepository[ConversationMessageModel, Con
     ##
     # public methods
     ##
+
     async def add(self, dto: ConversationMessage) -> ConversationMessage:
         result = await super().add(dto)
 
@@ -56,7 +58,7 @@ class ConversationMessageRepository(BaseRepository[ConversationMessageModel, Con
         self,
         dto: ConversationMessage,
     ) -> ConversationMessage | None:
-        model = await self._postgres.get(self._model_type, dto.id)
+        model = await self._postgres_session.get(self._model_type, dto.id)
 
         if model is None:
             return None
@@ -70,10 +72,10 @@ class ConversationMessageRepository(BaseRepository[ConversationMessageModel, Con
         model.total_tokens = dto.usage.total_tokens if dto.usage else None
 
         try:
-            await self._postgres.commit()
-            await self._postgres.refresh(model)
+            await self._postgres_session.commit()
+            await self._postgres_session.refresh(model)
         except Exception:
-            await self._postgres.rollback()
+            await self._postgres_session.rollback()
             raise
 
         self._logger.debug('updated "%s" entry: "%s"', ConversationMessageModel, model.id)
@@ -94,7 +96,7 @@ class ConversationRepository(BaseRepository[ConversationModel, Conversation]):
 
     async def _to_dto(self, model: ConversationModel) -> Conversation:
         statement = select(ConversationModel).where(ConversationModel.id == model.id)
-        result = await self._postgres.execute(statement)
+        result = await self._postgres_session.execute(statement)
         _model = result.scalar_one()
 
         return Conversation.from_model(_model)
@@ -134,13 +136,13 @@ class ConversationRepository(BaseRepository[ConversationModel, Conversation]):
             .options(selectinload(ConversationModel.messages))
             .where(ConversationModel.id == _id)
         )
-        result = await self._postgres.execute(statement)
+        result = await self._postgres_session.execute(statement)
         model = result.scalar_one_or_none()
 
         return Conversation.from_model(model) if model else None
 
     async def update(self, dto: Conversation) -> Conversation | None:
-        model = await self._postgres.get(self._model_type, dto.id)
+        model = await self._postgres_session.get(self._model_type, dto.id)
 
         if model is None:
             return None
@@ -148,10 +150,10 @@ class ConversationRepository(BaseRepository[ConversationModel, Conversation]):
         model.active = dto.active
 
         try:
-            await self._postgres.commit()
-            await self._postgres.refresh(model)
+            await self._postgres_session.commit()
+            await self._postgres_session.refresh(model)
         except Exception:
-            await self._postgres.rollback()
+            await self._postgres_session.rollback()
             raise
 
         self._logger.debug('updated "%s" entry: "%s"', ConversationModel, model.id)

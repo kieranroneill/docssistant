@@ -39,7 +39,7 @@ function main {
 		up \
 		--build \
 		-d \
-		--wait postgres
+		--wait chroma postgres
 
   # run tests
   printf "%b running integration tests... \n" "${INFO_PREFIX}"

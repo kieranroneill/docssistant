@@ -9,3 +9,5 @@ class ErrorCode(Enum):
     FIELD_REQUIRED_ERROR = 4007
     # internal
     INTERNAL_SERVER_ERROR = 5000
+    # documents
+    DOCUMENT_PATH_DOES_NOT_EXIST_ERROR = 7000

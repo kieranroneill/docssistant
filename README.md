@@ -32,8 +32,10 @@
 
 ```text
 .
+├─ .documents/                              <-- Raw documents that are indexed by the indexer
+│   └── ...
 ├─ api/                                     <-- API source files - uses a functional layering approach
-│   ├── chat/
+│   ├── <package_name>/
 │   │   └── ...
 │   ├── main.py                             <-- Entrypoint file
 │   └── ...
@@ -46,7 +48,16 @@
 │   └── ...
 ├─ deployments/                             <-- Container orchestration configurations
 │   ├── compose.yml
-│   └── compose.development.yml
+│   ├── compose.development.yml
+│   ├── compose.test.yml
+│   └── ...
+├─ indexer/                                 <-- Indexer worker - scans for documents and indexes them
+│   ├── main.py                             <-- Entrypoint file
+│   └── ...
+├─ libs/                                    <-- Library source files - uses a functional layering approach
+│   ├── <package_name>/
+│   │   └── ...
+│   └── ...
 ├─ migrations/                              <-- Alembic migrations
 │   ├── versions/
 │   │   ├── 19700101000000_create_a_table.sql

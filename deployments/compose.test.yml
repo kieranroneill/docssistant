@@ -1,4 +1,23 @@
 services:
+  chroma:
+    build:
+      context: ../
+      dockerfile: ./build/package/chroma/Dockerfile
+    container_name: docssistant_chroma_test
+    environment:
+      IS_PERSISTENT: "FALSE"
+    healthcheck:
+      test: [ 'CMD', 'curl', '-fsS', 'http://127.0.0.1:8000/api/v2/heartbeat' ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    image: kieranroneill/docssistant-chroma:test
+    networks:
+      - docssistant_network_test
+    ports:
+      - '${CHROMA_PORT:-8001}:8000'
+
   postgres:
     container_name: docssistant_postgres_test
     image: postgres:16-alpine

@@ -6,7 +6,8 @@ from sqlalchemy import URL, engine_from_config, pool
 
 # import models here:
 import api.conversations.models  # noqa: F401
-from api.platform.defaults.models import BaseModel
+import libs.documents.models  # noqa: F401
+from libs.defaults.models import BaseModel
 
 # gets alembic.ini file
 config = context.config

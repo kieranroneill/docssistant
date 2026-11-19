@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 
-from api.platform.application.enums import ErrorCode
+from libs.application.enums import ErrorCode
 
 
 class BaseError(Exception):

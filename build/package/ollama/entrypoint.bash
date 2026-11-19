@@ -7,22 +7,25 @@ source /_cleanup.bash
 #
 # Environment Variables
 #
-# OLLAMA_MODEL - The Ollama model to pull and serve, defaults to "qwen3:4b".
+# OLLAMA_CHAT_MODEL - The Ollama chat model to pull and serve, defaults to "qwen3:4b".
+# OLLAMA_EMBEDDING_MODEL - The Ollama document embedding model to pull and serve, defaults to "nomic-embed-text".
 #
 # Examples
 #   ./entrypoint.bash
 function main() {
   local attempt
-  local healthcheck_url
+  local chat_model
+  local embedding_model
+  local tags_url
   local host
-  local model
   local ready
 
   _set_vars
 
-  model="${OLLAMA_MODEL:-qwen3:4b}"
+  chat_model="${OLLAMA_CHAT_MODEL:-qwen3:4b}"
+  embedding_model="${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}"
   host="${OLLAMA_HOST:-0.0.0.0:11434}"
-  healthcheck_url="http://127.0.0.1:11434/api/tags"
+  tags_url="http://127.0.0.1:11434/api/tags"
   ready=0
 
   printf "starting ollama on \"%s\"...\n" "${host}"
@@ -34,7 +37,7 @@ function main() {
 
   printf "%b waiting for ollama api...\n" "${INFO_PREFIX}"
   for attempt in $(seq 1 60); do
-    if curl -fsS "${healthcheck_url}" >/dev/null; then
+    if curl -fsS "${tags_url}" >/dev/null; then
       ready=1
       break
     fi
@@ -47,12 +50,15 @@ function main() {
     exit 1
   fi
 
-  if ! curl -fsS "${healthcheck_url}" | jq -e --arg model "${model}" '.models[] | select(.name == $model)' >/dev/null; then
-    printf "%b pulling model \"%s\"\n" "${INFO_PREFIX}" "${model}"
-    /bin/ollama pull "${model}"
-  else
-    printf "%b model \"%s\" already present \n" "${INFO_PREFIX}" "${model}"
-  fi
+  # pull the models
+  for model in "${chat_model}" "${embedding_model}"; do
+    if ! curl -fsS "${tags_url}" | jq -e --arg model "${model}" '.models[] | select(.name == $model)' >/dev/null; then
+      printf "%b pulling model \"%s\"\n" "${INFO_PREFIX}" "${model}"
+      /bin/ollama pull "${model}"
+    else
+      printf "%b model \"%s\" already present \n" "${INFO_PREFIX}" "${model}"
+    fi
+  done
 
   printf "%b restarting ollama in foreground...\n" "${INFO_PREFIX}"
   _cleanup

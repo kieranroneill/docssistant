@@ -1,5 +1,5 @@
-from api.platform.application.enums import ErrorCode
-from api.platform.defaults.errors import BaseError
+from libs.application.enums import ErrorCode
+from libs.defaults.errors import BaseError
 
 
 class ConversationNotFoundError(BaseError):

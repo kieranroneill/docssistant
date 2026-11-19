@@ -3,17 +3,13 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
 
 from api.conversations.routes import router as conversations_router
 from api.healthcheck.routes import router as healthcheck_router
-from api.platform.agents.clients import AgentClient
-from api.platform.logging.utilities import get_logger
-from api.platform.postgres.utilities import url as postgres_url
+from libs.agents.clients import ChatAgent, EmbeddingsAgent
+from libs.chroma.clients import ChromaClient
+from libs.logging.utilities import get_logger
+from libs.postgres.clients import PostgresClient
 
 
 def _create_app() -> FastAPI:
@@ -29,24 +25,25 @@ def _create_app() -> FastAPI:
 
 @asynccontextmanager
 async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    postgres_engine = create_async_engine(postgres_url(), pool_pre_ping=True)
     logger = get_logger()
-
-    # attach dependencies
-    _app.state.agent = AgentClient(logger=logger)
-    _app.state.logger = logger
-    _app.state.postgres_session_factory = async_sessionmaker(
-        bind=postgres_engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-        autoflush=False,
-    )
+    chroma = ChromaClient(logger=logger)
+    embeddings_agent = EmbeddingsAgent(logger=logger)
+    postgres = PostgresClient(logger=logger)
 
     try:
+        await chroma.initialize()
+
+        # attach dependencies
+        _app.state.chat_agent = ChatAgent(logger=logger)
+        _app.state.chroma = chroma
+        _app.state.embeddings_agent = embeddings_agent
+        _app.state.logger = logger
+        _app.state.postgres = postgres
+
         yield
     # cleanup
     finally:
-        await postgres_engine.dispose()
+        await postgres.dispose()
 
 
 app = _create_app()

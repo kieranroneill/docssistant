@@ -11,11 +11,11 @@ DTO = TypeVar("DTO")
 
 class BaseRepository(ABC, Generic[Model, DTO]):
     _logger: Logger
-    _postgres: AsyncSession
+    _postgres_session: AsyncSession
 
-    def __init__(self, postgres: AsyncSession, logger: Logger) -> None:
+    def __init__(self, postgres_session: AsyncSession, logger: Logger) -> None:
         self._logger = logger
-        self._postgres = postgres
+        self._postgres_session = postgres_session
 
     ##
     # private methods
@@ -40,11 +40,11 @@ class BaseRepository(ABC, Generic[Model, DTO]):
         model = self._to_model(dto)
 
         try:
-            self._postgres.add(model)
-            await self._postgres.commit()
-            await self._postgres.refresh(model)
+            self._postgres_session.add(model)
+            await self._postgres_session.commit()
+            await self._postgres_session.refresh(model)
         except Exception:
-            await self._postgres.rollback()
+            await self._postgres_session.rollback()
             raise
 
         return await self._to_dto(model)
@@ -56,13 +56,13 @@ class BaseRepository(ABC, Generic[Model, DTO]):
         models = [self._to_model(dto) for dto in dtos]
 
         try:
-            self._postgres.add_all(models)
-            await self._postgres.commit()
+            self._postgres_session.add_all(models)
+            await self._postgres_session.commit()
 
             for model in models:
-                await self._postgres.refresh(model)
+                await self._postgres_session.refresh(model)
         except Exception:
-            await self._postgres.rollback()
+            await self._postgres_session.rollback()
             raise
 
         self._logger.debug(f'added multiple "{self._model_type}": [{[model.id for model in models]}]')
@@ -70,22 +70,22 @@ class BaseRepository(ABC, Generic[Model, DTO]):
         return [await self._to_dto(model) for model in models]
 
     async def delete_by_id(self, _id: UUID) -> bool:
-        model = await self._postgres.get(self._model_type, _id)
+        model = await self._postgres_session.get(self._model_type, _id)
 
         if model is None:
             return False
 
         try:
-            await self._postgres.delete(model)
-            await self._postgres.commit()
+            await self._postgres_session.delete(model)
+            await self._postgres_session.commit()
         except Exception:
-            await self._postgres.rollback()
+            await self._postgres_session.rollback()
             raise
 
         return True
 
     async def get_by_id(self, _id: UUID) -> DTO | None:
-        model = await self._postgres.get(self._model_type, _id)
+        model = await self._postgres_session.get(self._model_type, _id)
 
         if model is None:
             return None
