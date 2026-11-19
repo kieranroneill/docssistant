@@ -5,7 +5,8 @@ from chromadb.api.models.AsyncCollection import AsyncCollection
 from fastapi import status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.documents.repositories import Repository as DocumentsRepository
+from api.documents.repositories import DocumentChunkRepository as DocumentsRepository
+from api.documents.repositories import DocumentVersionRepository
 from api.platform.agents.clients import AbstractChatAgent, AbstractEmbeddingsAgent
 from api.platform.agents.dtos import ChatMessage, ChatResult
 from api.platform.application.errors import InternalServerError
@@ -36,8 +37,11 @@ class Service(BaseService):
 
         self._chat_agent = chat_agent
         self._documents_repository = DocumentsRepository(collection=chroma_collection, logger=logger)
-        self._conversation_message_repository = ConversationMessageRepository(logger=logger, postgres=postgres_session)
-        self._conversation_repository = ConversationRepository(logger=logger, postgres=postgres_session)
+        self._document_versions_repository = DocumentVersionRepository(logger=logger, postgres_session=postgres_session)
+        self._conversation_message_repository = ConversationMessageRepository(
+            logger=logger, postgres_session=postgres_session
+        )
+        self._conversation_repository = ConversationRepository(logger=logger, postgres_session=postgres_session)
         self._embeddings_agent = embeddings_agent
 
     ###
@@ -57,7 +61,8 @@ class Service(BaseService):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-        matches = await self._documents_repository.search(embeddings=embeddings)
+        active_versions = await self._document_versions_repository.get_all_active()
+        matches = await self._documents_repository.search(embeddings=embeddings, active_versions=active_versions)
 
         # if not document chunk matches where found, there is no need to continue
         if not matches:

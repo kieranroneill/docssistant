@@ -18,7 +18,6 @@ services:
       CHROMA_HOST: chroma
       CHROMA_PORT: 8000
       DESCRIPTION: ${DESCRIPTION:-"Docssistant."}
-      DOCUMENT_STORE_PATH: /app/document-store
       ENVIRONMENT: ${ENVIRONMENT:-development}
       LOG_LEVEL: ${LOG_LEVEL:-debug}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
@@ -157,9 +156,9 @@ services:
     container_name: docssistant_alembic_dev
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-docssistant}
-      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_HOST: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
-      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
     depends_on:
       postgres:

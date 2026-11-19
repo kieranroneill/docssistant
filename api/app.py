@@ -28,16 +28,23 @@ def _create_app() -> FastAPI:
 
 
 async def _document_index_task(
-    chroma: ChromaClient, documents_path: Path, embeddings_agent: EmbeddingsAgent, logger: Logger
+    chroma: ChromaClient,
+    documents_path: Path,
+    embeddings_agent: EmbeddingsAgent,
+    logger: Logger,
+    postgres: PostgresClient,
 ) -> None:
     try:
-        documents_service = DocumentIndexerService(
-            chroma_collection=await chroma.collection(),
-            embeddings_agent=embeddings_agent,
-            logger=logger,
-        )
+        # The background task owns its session; never share a request's session.
+        async with postgres.create_session() as session:
+            documents_service = DocumentIndexerService(
+                chroma_collection=await chroma.collection(),
+                embeddings_agent=embeddings_agent,
+                logger=logger,
+                postgres_session=session,
+            )
 
-        indexed = await documents_service.index(documents_path=documents_path)
+            indexed = await documents_service.index(documents_path=documents_path)
     except asyncio.CancelledError:
         logger.info("document indexing cancelled")
     except Exception as e:
@@ -58,13 +65,15 @@ async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
     try:
         await chroma.initialize()
 
-        # create a thread to index documents at `/.documents` in the background
+        # index documents in a background task
+        # TODO: move this to a separate worker
         indexing_task = asyncio.create_task(
             _document_index_task(
                 chroma=chroma,
                 documents_path=documents_path,
                 embeddings_agent=embeddings_agent,
                 logger=logger,
+                postgres=postgres,
             ),
             name="document-indexing-task",
         )

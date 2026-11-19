@@ -1,13 +1,20 @@
 from logging import Logger
+from uuid import UUID, uuid4
 
 import numpy as np
 from chromadb.api.models.AsyncCollection import AsyncCollection
 from chromadb.api.types import Metadata, Where
+from sqlalchemy import select, update
+from sqlalchemy.dialects.postgresql import insert
 
-from .dtos import DocumentChunk, DocumentMatch
+from api.platform.datetime.utilities import from_iso_string
+from api.platform.defaults.repositories import BaseRepository
+
+from .dtos import DocumentChunk, DocumentMatch, DocumentVersion
+from .models import DocumentVersionModel
 
 
-class Repository:
+class DocumentChunkRepository:
     _logger: Logger
 
     def __init__(self, logger: Logger, collection: AsyncCollection):
@@ -31,12 +38,29 @@ class Repository:
     async def search(
         self,
         embeddings: list[float],
+        active_versions: list[DocumentVersion],
         limit: int = 5,
     ) -> list[DocumentMatch]:
+        # Never fall back to an unfiltered query: staged/legacy chunks are private.
+        if not active_versions:
+            return []
+
+        filters: list[Where] = []
+
+        for active_version in active_versions:
+            document_filter: Where = {"document_id": str(active_version.document_id)}
+            version_filter: Where = {"version": active_version.version}
+            filters.append({"$and": [document_filter, version_filter]})
+
+        where: Where = filters[0]
+
+        if len(filters) > 1:
+            where = {"$or": filters}
         result = await self._collection.query(
             include=["documents", "metadatas", "distances"],
             n_results=limit,
             query_embeddings=[embeddings],
+            where=where,
         )
         documents = result["documents"]
         metadatas = result["metadatas"]
@@ -75,7 +99,7 @@ class Repository:
         metadatas: list[Metadata] = []
 
         for index, chunk in enumerate(chunks):
-            metadata: Metadata = {
+            metadata: dict[str, str | int] = {
                 "chunk_index": offset + index,
                 "document_id": document_id,
                 "version": version,
@@ -93,3 +117,80 @@ class Repository:
             ids=ids,
             metadatas=metadatas,
         )
+
+
+class DocumentVersionRepository(BaseRepository[DocumentVersionModel, DocumentVersion]):
+    ##
+    # private methods
+    ##
+
+    @property
+    def _model_type(self) -> type[DocumentVersionModel]:
+        return DocumentVersionModel
+
+    def _to_model(self, dto: DocumentVersion) -> DocumentVersionModel:
+        return dto.to_model()
+
+    async def _to_dto(self, model: DocumentVersionModel) -> DocumentVersion:
+        return DocumentVersion.from_model(model)
+
+    ##
+    # public methods
+    ##
+
+    async def get_all_active(self) -> list[DocumentVersion]:
+        statement = select(DocumentVersionModel).where(DocumentVersionModel.active == True)
+        result = await self._postgres_session.execute(statement)
+        models = result.scalars().all()
+
+        return [DocumentVersion.from_model(model) for model in models]
+
+    async def publish(self, document_id: UUID, source: str, version: str) -> None:
+        """
+        Publishes a new version atomically.
+
+        1. Adds the new version, but leaves it inactive.
+        2. Deactivates the previous active version(s).
+        3. Activates the new version.
+
+        Note: If any of the steps fail, the transaction will be rolled back.
+
+        Args:
+            document_id (UUID): The ID of the document to publish a new version for.
+            source (str): The source of the new version.
+            version (str): The version of the new version.
+
+        Raises:
+            Exception: If any of the steps fail.
+        """
+        try:
+            # first insert the new version and set to inactive
+            await self._postgres_session.execute(
+                insert(DocumentVersionModel)
+                .values(
+                    active=False,
+                    document_id=document_id,
+                    source=source,
+                    version=version,
+                )
+                .on_conflict_do_nothing(constraint="uq_document_versions_document_version")
+            )
+            # deactivate the previous active version(s)
+            await self._postgres_session.execute(
+                update(DocumentVersionModel)
+                .where(DocumentVersionModel.document_id == document_id, DocumentVersionModel.active.is_(True))
+                .values(active=False)
+            )
+            # activate the new version
+            await self._postgres_session.execute(
+                update(DocumentVersionModel)
+                .where(
+                    DocumentVersionModel.document_id == document_id,
+                    DocumentVersionModel.version == version,
+                )
+                .values(active=True, source=source)
+            )
+            await self._postgres_session.commit()
+        except BaseException:
+            await self._postgres_session.rollback()
+            raise

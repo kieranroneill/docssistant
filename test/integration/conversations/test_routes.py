@@ -77,7 +77,7 @@ class TestChatEndpoint:
         async with app.state.postgres_session_factory() as postgres:
             repository = ConversationRepository(
                 logger=logger,
-                postgres=postgres,
+                postgres_session=postgres,
             )
             created_at = to_iso_string(now())
 
@@ -136,7 +136,7 @@ class TestChatEndpoint:
         async with app.state.postgres_session_factory() as postgres:
             repository = ConversationRepository(
                 logger=logger,
-                postgres=postgres,
+                postgres_session=postgres,
             )
             conversation = await repository.get_by_id_with_messages(_id=response_body["id"])
 
@@ -174,7 +174,7 @@ class TestChatEndpoint:
         async with app.state.postgres_session_factory() as postgres:
             repository = ConversationRepository(
                 logger=logger,
-                postgres=postgres,
+                postgres_session=postgres,
             )
             conversation = await repository.get_by_id_with_messages(_id=response_body["id"])
 

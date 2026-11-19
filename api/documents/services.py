@@ -3,24 +3,26 @@ from asyncio import to_thread
 from hashlib import sha256
 from logging import Logger
 from pathlib import Path
-from uuid import NAMESPACE_URL, uuid5
+from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from chromadb.api.models.AsyncCollection import AsyncCollection
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pdfplumber import open as open_pdf
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.platform.agents.clients import AbstractEmbeddingsAgent
 from api.platform.defaults.services import BaseService
 
-from .dtos import DocumentChunk
+from .dtos import DocumentChunk, DocumentVersion
 from .errors import DocumentPathDoesNotExistError
-from .repositories import Repository
+from .repositories import DocumentChunkRepository, DocumentVersionRepository
 
 
 class DocumentIndexerService(BaseService):
     _chunk_overlap: int
     _chunk_size: int
-    _documents_repository: Repository
+    _document_chunk_repository: DocumentChunkRepository
+    _document_version_repository: DocumentVersionRepository
     _embeddings_agent: AbstractEmbeddingsAgent
     _splitter: RecursiveCharacterTextSplitter
 
@@ -29,13 +31,15 @@ class DocumentIndexerService(BaseService):
         chroma_collection: AsyncCollection,
         embeddings_agent: AbstractEmbeddingsAgent,
         logger: Logger,
+        postgres_session: AsyncSession,
     ):
         super().__init__(logger=logger)
 
         # TODO: make the chunks configurable
         self._chunk_overlap = 200
         self._chunk_size = 1500
-        self._documents_repository = Repository(collection=chroma_collection, logger=logger)
+        self._document_chunk_repository = DocumentChunkRepository(collection=chroma_collection, logger=logger)
+        self._document_version_repository = DocumentVersionRepository(logger=logger, postgres_session=postgres_session)
         self._embeddings_agent = embeddings_agent
         self._splitter = RecursiveCharacterTextSplitter(chunk_size=self._chunk_size, chunk_overlap=self._chunk_overlap)
 
@@ -89,16 +93,23 @@ class DocumentIndexerService(BaseService):
             chunks = await to_thread(self._extract_pdf, path)
 
         if len(chunks) <= 0:
-            self._logger.info(f"document '{source}' contains no extractable text; ignoring")
+            self._logger.warning(
+                "document '%s' contains no extractable text; keeping its previous active version", source
+            )
 
             return False
 
-        document_id = str(uuid5(NAMESPACE_URL, f"docssistant:document_store:{source}"))
+        document_id = uuid5(NAMESPACE_URL, f"docssistant:document_store:{source}")
         fingerprint = await to_thread(self._fingerprint, chunks)
         ids = [f"{document_id}:{fingerprint}:{index}" for index in range(len(chunks))]
-        existing_ids = set(await self._documents_repository.get_chunk_ids_by_document_id(document_id=document_id))
+        existing_ids = set(
+            await self._document_chunk_repository.get_chunk_ids_by_document_id(document_id=str(document_id))
+        )
+        active_versions = await self._document_version_repository.get_all_active()
 
-        if existing_ids == set(ids):
+        if set(ids).issubset(existing_ids) and any(
+            active.document_id == document_id and active.version == fingerprint for active in active_versions
+        ):
             self._logger.info(f"document '{source}' is unchanged")
 
             return False
@@ -118,9 +129,9 @@ class DocumentIndexerService(BaseService):
 
                 return False
 
-            await self._documents_repository.upsert(
+            await self._document_chunk_repository.upsert(
                 chunks=batch,
-                document_id=document_id,
+                document_id=str(document_id),
                 embeddings=embeddings,
                 ids=ids[offset : offset + 32],
                 offset=offset,
@@ -128,8 +139,12 @@ class DocumentIndexerService(BaseService):
                 version=fingerprint,
             )
 
-        # remove stale chunks only after all replacement chunks were written
-        await self._documents_repository.delete_chunks_by_ids(ids=sorted(existing_ids - set(ids)))
+        # publish the new version
+        await self._document_version_repository.publish(
+            document_id=document_id,
+            source=source,
+            version=fingerprint,
+        )
 
         return True
 
