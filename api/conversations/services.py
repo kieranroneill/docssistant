@@ -73,8 +73,27 @@ class Service(BaseService):
                 total_tokens=0,
             )
 
-        context = "\n\n".join(f"[{match.document_id}:{match.chunk_index}]\n{match.content}" for match in matches)
-        content = f"Document excerpts:\n{context}\n\n" f"Question:\n{query}"
+        excerpts = []
+
+        # create extra context for the model with matched sources
+        for number, match in enumerate(matches, start=1):
+            location = match.source or match.document_id
+
+            if match.page_number is not None:
+                location += f", page {match.page_number}"
+
+            excerpts.append(f"[{number}] {location}\n{match.content}")
+
+        # update the query with document excerpts:
+        #
+        # Document excerpts:
+        # [1] employee-handbook.pdf, PDF page 12
+        # Employees receive 25 days of annual leave.
+        #
+        # Question:
+        # How much annual leave do employees receive?
+        context = "\n\n".join(excerpts)
+        content = f"Document excerpts:\n{context}\n\nQuestion:\n{query}"
 
         self._logger.debug(
             f"calling chat agent '{self._chat_agent.model()}' with embedded query:\n" f"```\n" f"{content}\n" f"```"

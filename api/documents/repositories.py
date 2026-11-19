@@ -4,7 +4,7 @@ import numpy as np
 from chromadb.api.models.AsyncCollection import AsyncCollection
 from chromadb.api.types import Metadata, Where
 
-from .dtos import DocumentMatch
+from .dtos import DocumentChunk, DocumentMatch
 
 
 class Repository:
@@ -47,10 +47,12 @@ class Repository:
 
         return [
             DocumentMatch(
-                document_id=str(metadata["document_id"]),
                 chunk_index=int(str(metadata["chunk_index"])),
                 content=content,
+                document_id=str(metadata["document_id"]),
                 distance=distance,
+                source=str(metadata.get("source", "")),
+                page_number=(int(str(metadata["page_number"])) if metadata.get("page_number") is not None else None),
             )
             for content, metadata, distance in zip(
                 documents[0],
@@ -66,18 +68,26 @@ class Repository:
         document_id: str,
         source: str,
         offset: int,
-        chunks: list[str],
+        chunks: list[DocumentChunk],
         embeddings: list[list[float]],
     ) -> None:
         metadatas: list[Metadata] = []
 
-        for index in range(len(chunks)):
-            metadata: Metadata = {"document_id": document_id, "source": source, "chunk_index": offset + index}
+        for index, chunk in enumerate(chunks):
+            metadata: Metadata = {
+                "chunk_index": offset + index,
+                "document_id": document_id,
+                "source": source,
+            }
+
+            if chunk.page_number is not None:
+                metadata["page_number"] = chunk.page_number
+
             metadatas.append(metadata)
 
         await self._collection.upsert(
-            ids=ids,
-            documents=chunks,
+            documents=[chunk.content for chunk in chunks],
             embeddings=np.asarray(embeddings, dtype=np.float32),
+            ids=ids,
             metadatas=metadatas,
         )
