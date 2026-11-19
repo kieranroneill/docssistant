@@ -38,8 +38,6 @@ async def main() -> None:
             recursive=True,
             force_polling=True,
             step=500,
-            yield_on_timeout=True,
-            rust_timeout=60_000,
         ):
             supported_change = any(Path(path).suffix.lower() in SUPPORTED_DOCUMENT_EXTENSIONS for _, path in changes)
 
@@ -53,5 +51,9 @@ async def main() -> None:
 
 if __name__ == "__main__":
     logging.basicConfig(format="%(levelname)s: %(message)s", level=os.getenv("LOG_LEVEL", "INFO").upper())
+
+    # if set to DEBUG, it is very noisy
+    logging.getLogger("pdfminer").setLevel(logging.WARNING)
+    logging.getLogger("pdfplumber").setLevel(logging.WARNING)
 
     asyncio.run(main())

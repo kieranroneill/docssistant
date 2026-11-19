@@ -110,12 +110,28 @@ class IndexerService(BaseService):
         )
         active_versions = await self._document_version_repository.get_all_active()
 
-        if set(ids).issubset(existing_ids) and any(
-            active.document_id == document_id and active.version == fingerprint for active in active_versions
-        ):
-            self._logger.info(f"document '{source}' is unchanged")
+        # check if the chunk is the active versions
+        if set(ids).issubset(existing_ids):
+            already_active = any(
+                active.document_id == document_id and active.version == fingerprint for active in active_versions
+            )
 
-            return False
+            # if the document is already the latest version ignore any changes
+            if already_active:
+                self._logger.info(f"document '{source}' is unchanged")
+
+                return False
+
+            # if it is not the latest version, but is present, re-activate it as it is the now the latest version
+            await self._document_version_repository.publish(
+                document_id=document_id,
+                source=source,
+                version=fingerprint,
+            )
+
+            self._logger.info(f"reactivated document '{source}'")
+
+            return True
 
         self._logger.info(f"indexing document '{source}' ({len(chunks)} chunks)")
 
@@ -179,5 +195,21 @@ class IndexerService(BaseService):
                     indexed += 1
             except Exception as e:
                 self._logger.error(f"failed to index document '{path}': {e}")
+
+        active_versions = await self._document_version_repository.get_all_active()
+
+        for active in active_versions:
+            path = documents_path / active.source
+
+            try:
+                await to_thread(path.stat)
+            except FileNotFoundError:
+                await self._document_version_repository.deactivate(
+                    document_id=active.document_id,
+                )
+
+                self._logger.info(f"deactivated removed document '{active.source}")
+            except OSError:
+                self._logger.exception(f"could not check document '{active.source}'; keeping its active version")
 
         return indexed

@@ -137,7 +137,34 @@ class DocumentVersionRepository(BaseRepository[DocumentVersionModel, DocumentVer
     # public methods
     ##
 
+    async def deactivate(self, document_id: UUID) -> None:
+        """
+        Simply deactivates all document version by the given document ID.
+
+        Args:
+            document_id: The document ID to deactivate.
+        """
+        try:
+            await self._postgres_session.execute(
+                update(DocumentVersionModel)
+                .where(
+                    DocumentVersionModel.document_id == document_id,
+                    DocumentVersionModel.active.is_(True),
+                )
+                .values(active=False)
+            )
+            await self._postgres_session.commit()
+        except BaseException:
+            await self._postgres_session.rollback()
+            raise
+
     async def get_all_active(self) -> list[DocumentVersion]:
+        """
+        Returns all active document versions.
+
+        Returns:
+            list[DocumentVersion]: A list of active document versions.
+        """
         statement = select(DocumentVersionModel).where(DocumentVersionModel.active == True)
         result = await self._postgres_session.execute(statement)
         models = result.scalars().all()
