@@ -9,9 +9,9 @@ from fastapi.testclient import TestClient
 from api.app import app
 from api.conversations.dtos import Conversation, ConversationMessage, Usage
 from api.conversations.repositories import ConversationRepository
-from api.platform.application.enums import ErrorCode
-from api.platform.datetime.utilities import now, to_iso_string
-from api.platform.logging.utilities import get_logger
+from libs.application.enums import ErrorCode
+from libs.datetime.utilities import now, to_iso_string
+from libs.logging.utilities import get_logger
 
 
 @pytest.fixture

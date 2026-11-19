@@ -5,13 +5,15 @@ from chromadb.api.models.AsyncCollection import AsyncCollection
 from fastapi import status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.documents.repositories import DocumentChunkRepository as DocumentsRepository
-from api.documents.repositories import DocumentVersionRepository
-from api.platform.agents.clients import AbstractChatAgent, AbstractEmbeddingsAgent
-from api.platform.agents.dtos import ChatMessage, ChatResult
-from api.platform.application.errors import InternalServerError
-from api.platform.datetime.utilities import now, to_iso_string
-from api.platform.defaults.services import BaseService
+from libs.agents.clients import AbstractChatAgent, AbstractEmbeddingsAgent
+from libs.agents.dtos import ChatMessage, ChatResult
+from libs.application.errors import InternalServerError
+from libs.datetime.utilities import now, to_iso_string
+from libs.defaults.services import BaseService
+from libs.documents.repositories import (
+    DocumentChunkRepository,
+    DocumentVersionRepository,
+)
 
 from .dtos import Conversation, ConversationMessage, Usage
 from .errors import ConversationNotFoundError
@@ -22,7 +24,8 @@ class Service(BaseService):
     _chat_agent: AbstractChatAgent
     _conversation_message_repository: ConversationMessageRepository
     _conversation_repository: ConversationRepository
-    _documents_repository: DocumentsRepository
+    _document_chunks_repository: DocumentChunkRepository
+    _document_versions_repository: DocumentVersionRepository
     _embeddings_agent: AbstractEmbeddingsAgent
 
     def __init__(
@@ -36,7 +39,7 @@ class Service(BaseService):
         super().__init__(logger=logger)
 
         self._chat_agent = chat_agent
-        self._documents_repository = DocumentsRepository(collection=chroma_collection, logger=logger)
+        self._document_chunks_repository = DocumentChunkRepository(collection=chroma_collection, logger=logger)
         self._document_versions_repository = DocumentVersionRepository(logger=logger, postgres_session=postgres_session)
         self._conversation_message_repository = ConversationMessageRepository(
             logger=logger, postgres_session=postgres_session
@@ -62,7 +65,7 @@ class Service(BaseService):
             )
 
         active_versions = await self._document_versions_repository.get_all_active()
-        matches = await self._documents_repository.search(embeddings=embeddings, active_versions=active_versions)
+        matches = await self._document_chunks_repository.search(embeddings=embeddings, active_versions=active_versions)
 
         # if not document chunk matches where found, there is no need to continue
         if not matches:

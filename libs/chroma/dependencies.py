@@ -1,7 +1,7 @@
 from chromadb.api.models.Collection import Collection
 from fastapi import Request
 
-from api.platform.chroma.clients import ChromaClient
+from .clients import ChromaClient
 
 
 async def get_collection(request: Request) -> Collection:

@@ -1,7 +1,7 @@
 from uuid import UUID
 
-from api.platform.datetime.utilities import from_iso_string, to_iso_string
-from api.platform.defaults.dtos import BaseDTO
+from libs.datetime.utilities import from_iso_string, to_iso_string
+from libs.defaults.dtos import BaseDTO
 
 from .models import DocumentVersionModel
 

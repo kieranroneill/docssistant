@@ -6,7 +6,7 @@ from langchain.agents import create_agent
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langgraph.graph.state import CompiledStateGraph
 
-from api.platform.datetime.utilities import now, to_iso_string
+from libs.datetime.utilities import now, to_iso_string
 
 from .dtos import ChatMessage, ChatResult
 

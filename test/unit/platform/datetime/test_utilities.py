@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from api.platform.datetime.utilities import from_iso_string, to_iso_string
+from libs.datetime.utilities import from_iso_string, to_iso_string
 
 
 class TestFromISOString:

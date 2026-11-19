@@ -46,6 +46,7 @@ services:
       # watch for changes on source code
       - ../alembic.ini:/app/alembic.ini:cached
       - ../api:/app/api:cached
+      - ../libs:/app/libs:cached
       - ../migrations:/app/migrations:cached
       - ../pyproject.toml:/app/pyproject.toml:cached
 
@@ -170,6 +171,7 @@ services:
     volumes:
       - ../alembic.ini:/app/alembic.ini:ro
       - ../api:/app/api:ro
+      - ../libs:/app/libs:ro
       - ../migrations:/app/migrations
 
 networks:

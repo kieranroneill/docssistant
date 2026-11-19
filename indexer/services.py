@@ -3,22 +3,24 @@ from asyncio import to_thread
 from hashlib import sha256
 from logging import Logger
 from pathlib import Path
-from uuid import NAMESPACE_URL, uuid4, uuid5
+from uuid import NAMESPACE_URL, uuid5
 
 from chromadb.api.models.AsyncCollection import AsyncCollection
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pdfplumber import open as open_pdf
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.platform.agents.clients import AbstractEmbeddingsAgent
-from api.platform.defaults.services import BaseService
+from libs.agents.clients import AbstractEmbeddingsAgent
+from libs.defaults.services import BaseService
+from libs.documents.dtos import DocumentChunk
+from libs.documents.errors import DocumentPathDoesNotExistError
+from libs.documents.repositories import (
+    DocumentChunkRepository,
+    DocumentVersionRepository,
+)
 
-from .dtos import DocumentChunk, DocumentVersion
-from .errors import DocumentPathDoesNotExistError
-from .repositories import DocumentChunkRepository, DocumentVersionRepository
 
-
-class DocumentIndexerService(BaseService):
+class IndexerService(BaseService):
     _chunk_overlap: int
     _chunk_size: int
     _document_chunk_repository: DocumentChunkRepository

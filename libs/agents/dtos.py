@@ -1,4 +1,4 @@
-from api.platform.defaults.dtos import BaseDTO
+from libs.defaults.dtos import BaseDTO
 
 
 class ChatMessage(BaseDTO, frozen=True):

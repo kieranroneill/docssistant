@@ -17,5 +17,8 @@ line-length = 120
 target-version = ["py312"]
 
 [tool.setuptools]
-packages = ["api"]
 include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["api", "api.*", "indexer", "indexer.*", "libs", "libs.*"]

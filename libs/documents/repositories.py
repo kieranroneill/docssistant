@@ -7,8 +7,7 @@ from chromadb.api.types import Metadata, Where
 from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 
-from api.platform.datetime.utilities import from_iso_string
-from api.platform.defaults.repositories import BaseRepository
+from libs.defaults.repositories import BaseRepository
 
 from .dtos import DocumentChunk, DocumentMatch, DocumentVersion
 from .models import DocumentVersionModel

@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from api.platform.defaults.repositories import BaseRepository
+from libs.defaults.repositories import BaseRepository
 
 from .dtos import Conversation, ConversationMessage
 from .models import ConversationMessageModel, ConversationModel

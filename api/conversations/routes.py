@@ -5,11 +5,11 @@ from chromadb.api.models.AsyncCollection import AsyncCollection
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.platform.agents.clients import ChatAgent, EmbeddingsAgent
-from api.platform.agents.dependencies import get_chat_agent, get_embeddings_agent
-from api.platform.chroma.dependencies import get_collection as get_chroma_collection
-from api.platform.logging.dependencies import get_logger
-from api.platform.postgres.dependencies import get_session as get_postgres_session
+from libs.agents.clients import ChatAgent, EmbeddingsAgent
+from libs.agents.dependencies import get_chat_agent, get_embeddings_agent
+from libs.chroma.dependencies import get_collection as get_chroma_collection
+from libs.logging.dependencies import get_logger
+from libs.postgres.dependencies import get_session as get_postgres_session
 
 from .dtos import Conversation
 from .requests import ChatRequest

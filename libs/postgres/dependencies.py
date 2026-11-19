@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.platform.postgres.clients import PostgresClient
+from .clients import PostgresClient
 
 
 async def get_session(request: Request) -> AsyncIterator[AsyncSession]:

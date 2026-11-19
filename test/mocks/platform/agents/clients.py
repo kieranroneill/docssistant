@@ -1,8 +1,8 @@
 from logging import Logger
 
-from api.platform.agents.clients import AbstractChatAgent
-from api.platform.agents.dtos import ChatMessage, ChatResult, Usage
-from api.platform.datetime.utilities import now, to_iso_string
+from libs.agents.clients import AbstractChatAgent
+from libs.agents.dtos import ChatMessage, ChatResult, Usage
+from libs.datetime.utilities import now, to_iso_string
 
 
 class MockChatAgent(AbstractChatAgent):
