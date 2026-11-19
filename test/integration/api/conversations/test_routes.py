@@ -1,6 +1,6 @@
 from logging import Logger
 from test.mocks.agents.clients import MockChatAgent, MockEmbeddingsAgent
-from uuid import uuid4, uuid5
+from uuid import uuid4
 
 import pytest
 from fastapi import status
@@ -118,11 +118,11 @@ class TestChatEndpoint:
                             sources=[
                                 ConversationSource(
                                     chunk_index=0,
-                                    document_id=uuid5(uuid4(), "a cool doc"),
+                                    document_id=uuid4(),
                                     id=uuid4(),
                                     page_number=34,
                                     reference=0,
-                                    source="the interent",
+                                    source="the internet",
                                 ),
                             ],
                             usage=Usage(
@@ -148,7 +148,7 @@ class TestChatEndpoint:
                     chunk_index=0,
                     content="Hello! How can I help you today?",
                     distance=0.0,
-                    document_id="test-document",
+                    document_id=str(uuid4()),
                 )
             ],
         )
@@ -197,7 +197,7 @@ class TestChatEndpoint:
                     chunk_index=0,
                     content="Hello! How can I help you today?",
                     distance=0.0,
-                    document_id="test-document",
+                    document_id=str(uuid4()),
                 )
             ],
         )

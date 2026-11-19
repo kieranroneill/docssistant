@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 from libs.defaults.repositories import BaseRepository
 
 from .dtos import Conversation, ConversationMessage
-from .models import ConversationMessageModel, ConversationModel, ConversationSourceModel
+from .models import ConversationMessageModel, ConversationModel
 
 
 class ConversationMessageRepository(BaseRepository[ConversationMessageModel, ConversationMessage]):
