@@ -6,7 +6,7 @@ from langchain.agents import create_agent
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langgraph.graph.state import CompiledStateGraph
 
-from libs.datetime.utilities import now, to_iso_string
+from libs.datetime.utilities import from_iso_string, now, to_iso_string
 
 from .dtos import ChatMessage, ChatResult
 
@@ -105,7 +105,7 @@ class ChatAgent(AbstractChatAgent):
 
         return ChatResult(
             content=content,
-            created_at=metadata.get("created_at", to_iso_string(now())),
+            created_at=from_iso_string(metadata.get("created_at", to_iso_string(now()))),
             input_tokens=usage.get("input_tokens", 0),
             model=model,
             output_tokens=usage.get("output_tokens", 0),

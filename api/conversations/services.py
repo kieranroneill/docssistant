@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from libs.agents.clients import AbstractChatAgent, AbstractEmbeddingsAgent
 from libs.agents.dtos import ChatMessage, ChatResult, ChatSource
 from libs.application.errors import InternalServerError
-from libs.datetime.utilities import now, to_iso_string
+from libs.datetime.utilities import now
 from libs.defaults.services import BaseService
 from libs.documents.repositories import (
     DocumentChunkRepository,
@@ -18,6 +18,7 @@ from libs.documents.repositories import (
 from .dtos import Conversation, ConversationMessage, ConversationSource, Usage
 from .errors import ConversationNotFoundError
 from .repositories import ConversationMessageRepository, ConversationRepository
+from .responses import ConversationResponse, ConversationWithMessagesResponse
 
 
 class Service(BaseService):
@@ -74,7 +75,7 @@ class Service(BaseService):
             return (
                 ChatResult(
                     content="I couldn’t find relevant information in the available documents.",
-                    created_at=to_iso_string(now()),
+                    created_at=now(),
                     input_tokens=0,
                     model="application",
                     output_tokens=0,
@@ -140,7 +141,7 @@ class Service(BaseService):
 
         return result, sources
 
-    async def _chat(self, query: str) -> Conversation:
+    async def _chat(self, query: str) -> ConversationWithMessagesResponse:
         result, sources = await self._call_agents(messages=[], query=query)
         conversation_id = uuid4()
         sequence = 0
@@ -188,6 +189,7 @@ class Service(BaseService):
                     ),
                 ),
             ],
+            title=query,  # user the initial user query for the conversation title
             updated_at=result.created_at,
         )
 
@@ -198,7 +200,7 @@ class Service(BaseService):
             if conversation is None:
                 raise Exception("conversation is empty")
 
-            return conversation
+            return ConversationWithMessagesResponse.from_dto(conversation)
         except Exception as e:
             self._logger.error(f"failed to save conversation '{conversation_id}': {e}")
 
@@ -206,7 +208,7 @@ class Service(BaseService):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    async def _chat_with_conversation_id(self, query: str, conversation_id: UUID) -> Conversation:
+    async def _chat_with_conversation_id(self, query: str, conversation_id: UUID) -> ConversationWithMessagesResponse:
         conversation = await self._conversation_repository.get_by_id_with_messages(_id=conversation_id)
 
         if conversation is None:
@@ -269,7 +271,7 @@ class Service(BaseService):
             if conversation is None:
                 raise Exception
 
-            return conversation
+            return ConversationWithMessagesResponse.from_dto(conversation)
         except Exception:
             raise InternalServerError(message="failed to get a response from the agent").to_http_exception(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -283,9 +285,24 @@ class Service(BaseService):
         self,
         query: str,
         conversation_id: UUID | None = None,
-    ) -> Conversation:
+    ) -> ConversationWithMessagesResponse:
         # initiate a new conversation
         if conversation_id is None:
             return await self._chat(query=query)
 
         return await self._chat_with_conversation_id(query=query, conversation_id=conversation_id)
+
+    async def conversation_by_id(self, _id: UUID) -> ConversationWithMessagesResponse:
+        conversation = await self._conversation_repository.get_by_id_with_messages(_id=_id)
+
+        if conversation is None:
+            raise ConversationNotFoundError(message=f"conversation '{str(_id)}' not found").to_http_exception(
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+
+        return ConversationWithMessagesResponse.from_dto(conversation)
+
+    async def conversations(self) -> list[ConversationResponse]:
+        conversations = await self._conversation_repository.get_all_active_with_messages()
+
+        return [ConversationResponse.from_dto(conversation) for conversation in conversations]

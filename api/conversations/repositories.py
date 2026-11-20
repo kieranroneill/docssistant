@@ -130,7 +130,33 @@ class ConversationRepository(BaseRepository[ConversationModel, Conversation]):
 
         return result
 
+    async def get_all_active_with_messages(self) -> list[Conversation]:
+        """
+        Returns all active conversations. Returns the full conversation with message and nested sources relationships.
+
+        Returns:
+            list[Conversation]: A list of all active conversations.
+        """
+        statement = (
+            select(ConversationModel)
+            .options(selectinload(ConversationModel.messages).selectinload(ConversationMessageModel.sources))
+            .where(ConversationModel.active.is_(True))
+        )
+        result = await self._postgres_session.execute(statement)
+        models = result.scalars().all()
+
+        return [Conversation.from_model(model) for model in models]
+
     async def get_by_id_with_messages(self, _id: UUID) -> Conversation | None:
+        """
+        Returns all active conversations. Returns the full conversation with message and nested sources relationships.
+
+        Args:
+            _id (UUID): The ID of the conversation to retrieve.
+
+        Returns:
+            Conversation | None: The conversation with the specified ID, or None if not found.
+        """
         statement = (
             select(ConversationModel)
             .options(selectinload(ConversationModel.messages).selectinload(ConversationMessageModel.sources))
@@ -148,6 +174,7 @@ class ConversationRepository(BaseRepository[ConversationModel, Conversation]):
             return None
 
         model.active = dto.active
+        model.title = dto.title
 
         try:
             await self._postgres_session.commit()

@@ -1,21 +1,22 @@
+from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import Field
 from sqlalchemy import inspect
 
-from libs.datetime.utilities import from_iso_string, to_iso_string
-from libs.defaults.dtos import BaseDTO
-
 from .models import ConversationMessageModel, ConversationModel, ConversationSourceModel
 
 
-class Usage(BaseDTO):
+@dataclass()
+class Usage:
     input_tokens: int
     output_tokens: int
     total_tokens: int
 
 
-class ConversationSource(BaseDTO):
+@dataclass()
+class ConversationSource:
     chunk_index: int
     document_id: UUID
     id: UUID
@@ -45,15 +46,16 @@ class ConversationSource(BaseDTO):
         )
 
 
-class ConversationMessage(BaseDTO):
-    created_at: str
+@dataclass()
+class ConversationMessage:
+    created_at: datetime
     content: str
     conversation_id: UUID
     id: UUID
     model: str | None
     role: str
     sequence_number: int
-    sources: list[ConversationSource] = Field(default_factory=list)
+    sources: list[ConversationSource]
     usage: Usage | None
 
     @classmethod
@@ -73,7 +75,7 @@ class ConversationMessage(BaseDTO):
             )
 
         return cls(
-            created_at=to_iso_string(model.created_at),
+            created_at=model.created_at,
             content=model.content,
             conversation_id=model.conversation_id,
             id=model.id,
@@ -86,7 +88,7 @@ class ConversationMessage(BaseDTO):
 
     def to_model(self) -> ConversationMessageModel:
         return ConversationMessageModel(
-            created_at=from_iso_string(self.created_at),
+            created_at=self.created_at,
             content=self.content,
             conversation_id=self.conversation_id,
             id=self.id,
@@ -100,12 +102,14 @@ class ConversationMessage(BaseDTO):
         )
 
 
-class Conversation(BaseDTO):
+@dataclass()
+class Conversation:
     active: bool
-    created_at: str
+    created_at: datetime
     id: UUID
-    messages: list[ConversationMessage] = Field(default_factory=list)
-    updated_at: str
+    messages: list[ConversationMessage]
+    title: str
+    updated_at: datetime
 
     @classmethod
     def from_model(cls, model: ConversationModel) -> "Conversation":
@@ -116,18 +120,20 @@ class Conversation(BaseDTO):
         )
 
         return cls(
-            created_at=to_iso_string(model.created_at),
+            created_at=model.created_at,
             active=model.active,
             id=model.id,
             messages=messages,
-            updated_at=to_iso_string(model.updated_at),
+            title=model.title,
+            updated_at=model.updated_at,
         )
 
     def to_model(self) -> ConversationModel:
         return ConversationModel(
             active=self.active,
-            created_at=from_iso_string(self.created_at),
+            created_at=self.created_at,
             id=self.id,
             messages=[message.to_model() for message in self.messages] if self.messages is not None else [],
-            updated_at=from_iso_string(self.updated_at),
+            title=self.title,
+            updated_at=self.updated_at,
         )
