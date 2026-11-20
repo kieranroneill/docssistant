@@ -18,7 +18,7 @@ from libs.postgres.clients import PostgresClient
 
 def _create_app() -> FastAPI:
     title = os.environ["TITLE"]
-    _app = FastAPI(lifespan=_lifespan, title=f"{title} API")
+    _app = FastAPI(description=os.environ["DESCRIPTION"], lifespan=_lifespan, title=f"{title} API")
 
     # add routers
     _app.include_router(conversations_router)

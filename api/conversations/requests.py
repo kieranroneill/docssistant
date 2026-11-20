@@ -4,4 +4,4 @@ from libs.defaults.requests import BaseRequest
 
 
 class ChatRequest(BaseRequest):
-    query: str = Field(..., min_length=1)
+    query: str = Field(description="The query to ask the assistant", min_length=1)
