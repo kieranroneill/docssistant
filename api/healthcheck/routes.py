@@ -6,8 +6,11 @@ router = APIRouter(
 )
 
 
-@router.get("", status_code=200)
-async def healthcheck(response: Response) -> None:
+@router.get(
+    "",
+    status_code=status.HTTP_200_OK,
+)
+async def healthcheck(
+    response: Response,
+) -> None:
     response.status_code = status.HTTP_200_OK
-
-    return

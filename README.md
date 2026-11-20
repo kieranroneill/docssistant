@@ -8,6 +8,10 @@
   Docssistant
 </h1>
 
+<p align="center">
+    Docssistant is a document chat assistant that uses retrieval-augmented generation (RAG) to answer questions about your documents and cite its sources.
+</p>
+
 ---
 
 ### Table of contents
@@ -126,7 +130,7 @@ $ make dev
 
 | Command                                                     | Description                                                          |
 |-------------------------------------------------------------|----------------------------------------------------------------------|
-| `make create_migration MESSAGE="adds boats_profiles table"` | Starts the Docker `api` service and runs autogenerates migrations.   |
+| `make create_migration MESSAGE="create conversations table"` | Starts the Docker `api` service and runs autogenerates migrations.   |
 | `make dev`                                                  | Runs the platform in development mode via Docker.                    |
 | `make migration_downgrade`                                   | Downgrades the database migrations by a version.                     |
 | `make migration_downgrade_dev`                               | Downgrades the database migrations by a version (development only).  |

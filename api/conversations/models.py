@@ -81,6 +81,7 @@ class ConversationModel(BaseModel):
         nullable=False,
         server_default=func.now(),
     )
+    title: Mapped[str] = mapped_column(String, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

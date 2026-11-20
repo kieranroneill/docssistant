@@ -1,7 +1,7 @@
 from pydantic import Field
 
-from libs.defaults.dtos import BaseDTO
+from libs.defaults.requests import BaseRequest
 
 
-class ChatRequest(BaseDTO, frozen=True):
-    query: str = Field(..., min_length=1)
+class ChatRequest(BaseRequest):
+    query: str = Field(description="The query to ask the assistant", min_length=1)

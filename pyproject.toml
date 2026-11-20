@@ -1,7 +1,7 @@
 [project]
 name = "docssistant"
 version = "1.0.0"
-description = "Docssistant provides."
+description = "Docssistant is a document chat assistant that uses retrieval-augmented generation (RAG) to answer questions about your documents and cite its sources."
 authors = [
   { name = "Kieran O'Neill", email = "hello@kieranoneill.com" }
 ]

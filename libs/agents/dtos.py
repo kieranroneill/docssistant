@@ -1,14 +1,16 @@
+from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID
 
-from libs.defaults.dtos import BaseDTO
 
-
-class ChatMessage(BaseDTO, frozen=True):
+@dataclass()
+class ChatMessage:
     content: str
     role: str
 
 
-class ChatSource(BaseDTO, frozen=True):
+@dataclass()
+class ChatSource:
     chunk_index: int
     document_id: UUID
     page_number: int | None
@@ -16,9 +18,10 @@ class ChatSource(BaseDTO, frozen=True):
     source: str
 
 
-class ChatResult(BaseDTO, frozen=True):
+@dataclass()
+class ChatResult:
     content: str
-    created_at: str
+    created_at: datetime
     input_tokens: int
     model: str
     output_tokens: int

@@ -1,5 +1,6 @@
 import json
 from asyncio import to_thread
+from dataclasses import asdict
 from hashlib import sha256
 from logging import Logger
 from pathlib import Path
@@ -75,7 +76,7 @@ class IndexerService(BaseService):
     def _fingerprint(self, chunks: list[DocumentChunk]) -> str:
         return sha256(
             (f"{self._embeddings_agent.model()}:" f"{self._chunk_size}:{self._chunk_overlap}:v1\0" f"{json.dumps(
-                    [chunk.model_dump() for chunk in chunks],
+                    [asdict(chunk) for chunk in chunks],
                     ensure_ascii=False,
                     sort_keys=True,
                 )}").encode("utf-8")
