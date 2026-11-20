@@ -2,7 +2,7 @@ from logging import Logger
 
 from libs.agents.clients import AbstractChatAgent, AbstractEmbeddingsAgent
 from libs.agents.dtos import ChatMessage, ChatResult
-from libs.datetime.utilities import now, to_iso_string
+from libs.datetime.utilities import now
 
 
 class MockChatAgent(AbstractChatAgent):
@@ -20,7 +20,7 @@ class MockChatAgent(AbstractChatAgent):
     async def chat(self, messages: list[ChatMessage]) -> ChatResult:
         return ChatResult(
             content=self._chat_response or "I am unable to help you with that request.",
-            created_at=to_iso_string(now()),
+            created_at=now(),
             input_tokens=0,
             model="test-chat-model",
             output_tokens=0,

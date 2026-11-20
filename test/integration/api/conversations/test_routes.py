@@ -15,7 +15,7 @@ from api.conversations.dtos import (
 )
 from api.conversations.repositories import ConversationRepository
 from libs.application.enums import ErrorCode
-from libs.datetime.utilities import now, to_iso_string
+from libs.datetime.utilities import now
 from libs.documents.dtos import DocumentMatch
 from libs.logging.utilities import get_logger
 
@@ -86,7 +86,7 @@ class TestChatEndpoint:
                 logger=logger,
                 postgres_session=postgres,
             )
-            created_at = to_iso_string(now())
+            created_at = now()
 
             await repository.add(
                 dto=Conversation(
@@ -132,6 +132,7 @@ class TestChatEndpoint:
                             ),
                         ),
                     ],
+                    title=query,
                     updated_at=created_at,
                 )
             )
