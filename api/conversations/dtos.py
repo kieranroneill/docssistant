@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import Field
 from sqlalchemy import inspect
 
 from .models import ConversationMessageModel, ConversationModel, ConversationSourceModel
