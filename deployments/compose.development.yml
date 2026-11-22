@@ -7,6 +7,8 @@ services:
     depends_on:
       chroma:
         condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
       ollama:
         condition: service_healthy
       postgres:
@@ -80,6 +82,8 @@ services:
     depends_on:
       chroma:
         condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
       ollama:
         condition: service_healthy
       postgres:
@@ -129,6 +133,25 @@ services:
       - '${OLLAMA_PORT:-11434}:11434'
     volumes:
       - ../.ollama:/root/.ollama
+
+  migrations:
+    build:
+      context: ../
+      dockerfile: ./build/package/alembic/Dockerfile
+    command: upgrade head
+    container_name: docssistant_migrations_dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-docssistant}
+      POSTGRES_HOST: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+    image: kieranroneill/docssistant-migrations:development
+    networks:
+      - docssistant_network_dev
 
   postgres:
     container_name: docssistant_postgres_dev

@@ -328,17 +328,13 @@ Nothing else needs to be installed to run the stack — every service builds and
 
 Configuration is already committed: [`.env.dev`](./.env.dev) holds working development defaults, so there is no environment file to create. See [§5.2](#52-configuration) if you want to change anything.
 
-1. Apply the database migrations. This starts Postgres on its own and creates the schema:
-
-   ```bash
-   make migrations_upgrade_dev
-   ```
-
-2. Build and start every service:
+1. Build and start every service:
 
    ```bash
    make dev
    ```
+
+   Database migrations are applied for you: a one-shot `migrations` service runs `alembic upgrade head`, and both `api` and `indexer` wait for it to succeed before they start, so there is no schema to create by hand and no ordering to get right.
 
    On the **first** run this also downloads `qwen3:4b` and `nomic-embed-text`, which takes several minutes. The API waits for Chroma, Ollama and Postgres to report healthy before it starts, so the logs will sit quiet for a while — this is expected. Models are cached in `.ollama/`, so later starts are quick.
 
@@ -350,7 +346,7 @@ Configuration is already committed: [`.env.dev`](./.env.dev) holds working devel
 
    That layers [`compose.gpu.yml`](./deployments/compose.gpu.yml) over the base compose file to reserve one NVIDIA GPU for `ollama`, and fails loudly if the GPU cannot be reserved — so a missing [container toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) is an error rather than a silent fall back to the CPU. The script prints which of the two it used on startup. `GPU=1 make dev` works too; it is read from the environment rather than from [`.env.dev`](./.env.dev), so it has to be passed on each run.
 
-3. Once the `web` service is up, open:
+2. Once the `web` service is up, open:
 
    ```text
    http://localhost:8080/app
@@ -374,8 +370,6 @@ Configuration is already committed: [`.env.dev`](./.env.dev) holds working devel
    | Who is the current Director-General of the WHO?                           | A refusal — not in the supplied documents.                                                 |
 
    Asking the same question twice should give the same answer and the same citations, since the chat model runs at `temperature=0`.
-
-> ⚠️ **NOTE:** Run the migrations _before_ `make dev`. The indexer performs its first indexing pass at startup, and if the schema doesn't exist yet that pass fails and logs an error. It will recover on the next file change, but it is simpler to migrate first.
 
 <sup>[Back to top ^][table-of-contents]</sup>
 
@@ -421,7 +415,7 @@ Stop the stack with `Ctrl+C`, then remove the containers:
 docker compose -f ./deployments/compose.development.yml --env-file .env.dev -p docssistant-dev down
 ```
 
-State lives in gitignored directories on the host: `.chroma/` (embeddings), `.postgres/` (conversations and document versions) and `.ollama/` (downloaded models). Deleting `.chroma/` and `.postgres/` gives you a clean slate — re-run the migrations afterwards, and the indexer will rebuild the index from `.documents/` on next start. Keep `.ollama/` unless you want to download the models again.
+State lives in gitignored directories on the host: `.chroma/` (embeddings), `.postgres/` (conversations and document versions) and `.ollama/` (downloaded models). Deleting `.chroma/` and `.postgres/` gives you a clean slate: the next `make dev` re-applies the migrations and the indexer rebuilds the index from `.documents/`. Keep `.ollama/` unless you want to download the models again.
 
 <sup>[Back to top ^][table-of-contents]</sup>
 
@@ -630,7 +624,7 @@ What is missing: no tracing, no metrics backend, no dashboards, no alerting, and
 
 **The frontend reaches the API through a same-origin proxy, never a configured base URL.** The browser only ever issues same-origin `/api/*` requests, so there is no CORS configuration to maintain and no preflight behaviour to debug. The proxy is Vite's dev server in development and nginx in production, which means the bundle has no API host baked into it and the same build runs anywhere.
 
-**Everything runs in Docker, including the tools.** Alembic runs as a Compose service against the same image and environment as the API, so a migration generated locally is generated against the same Postgres version it will be applied to.
+**Everything runs in Docker, including the tools.** Alembic runs as a Compose service against the same image and environment as the API, so a migration generated locally is generated against the same Postgres version it will be applied to. In development it is also a startup gate: `api` and `indexer` depend on a one-shot `migrations` service completing successfully, so the application cannot run against a schema that was never migrated, and a broken migration stops the stack rather than letting it serve a stale schema.
 
 ### 4.3. Engineering standards
 
@@ -807,15 +801,19 @@ Compose supplies in-container hostnames (`api`, `chroma`, `ollama`, `postgres`) 
 
 Database migrations are managed with [Alembic](https://alembic.sqlalchemy.org/en/latest/) and run through Docker, so they use the same environment as the API service.
 
+In development they are applied automatically: the `migrations` service in [`compose.development.yml`](./deployments/compose.development.yml) runs `upgrade head` on every `make dev`, and `api` and `indexer` will not start until it exits successfully. Applying them by hand is only needed against a stack that is already running, or when rolling one back. The production stack has no such gate — [§2.6](#26-running-in-production-mode) applies migrations as a deliberate step before `make start`.
+
 ```bash
 make create_migration MESSAGE="add conversations table"
 make migrations_upgrade_dev
 make migrations_downgrade_dev
+make migrations_upgrade
 ```
 
 - `create_migration` generates a new Alembic revision from SQLAlchemy model changes.
-- `migrations_upgrade_dev` applies all pending migrations.
+- `migrations_upgrade_dev` applies all pending migrations to a running development stack.
 - `migrations_downgrade_dev` rolls back the latest migration by one revision.
+- `migrations_upgrade` applies all pending migrations to the production stack.
 
 Always review both the `upgrade` and `downgrade` halves of a generated revision before committing it — autogenerate is a starting point, not an answer.
 
