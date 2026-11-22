@@ -27,7 +27,10 @@ export default {
     retry: 'Retry',
     send: 'Send message',
     sending: 'Sending…',
+    version: 'v{{version}}',
     you: 'You',
   },
-  titles: {},
+  titles: {
+    app: 'Docssistant',
+  },
 } satisfies Record<string, unknown>;

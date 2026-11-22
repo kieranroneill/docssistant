@@ -6,6 +6,9 @@ import { Plus, X } from 'lucide-react';
 import ConversationListItem from '../ConversationListItem';
 import ErrorBanner from '../ErrorBanner';
 
+// hooks
+import useVersion from '@/platform/application/hooks/useVersion';
+
 // ui
 import Button from '@/platform/application/components/Button';
 
@@ -18,12 +21,15 @@ const ConversationSidebar: FC<Props> = ({
   error,
   isLoading,
   isOpen,
+  logger,
   onClose,
   onNewConversation,
   onReload,
   onSelect,
 }) => {
   const { t } = useTranslation();
+  // hooks
+  const { version } = useVersion(logger);
   // effects
   useEffect(() => {
     if (!isOpen) {
@@ -52,6 +58,15 @@ const ConversationSidebar: FC<Props> = ({
         }`}
         id="conversation-sidebar"
       >
+        <div className="border-b border-border p-4">
+          <h1 className="m-0 truncate text-lg font-semibold">{t('titles.app')}</h1>
+          {version && (
+            <p className="m-0 mt-0.5 truncate text-xs text-muted-foreground">
+              {t('labels.version', { version: version.version })}
+            </p>
+          )}
+        </div>
+
         <div className="flex min-w-0 items-center justify-between gap-2 border-b border-border p-4">
           <h2 className="m-0 min-w-0 truncate text-base font-semibold">{t('headings.conversations')}</h2>
 

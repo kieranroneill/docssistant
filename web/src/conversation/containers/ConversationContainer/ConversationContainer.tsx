@@ -48,6 +48,7 @@ const ConversationContainer: FC<Props> = ({ logger }) => {
         error={conversations.error ? t('captions.conversationsLoadError') : null}
         isLoading={conversations.isLoading}
         isOpen={isSidebarOpen}
+        logger={logger}
         onClose={() => setIsSidebarOpen(false)}
         onNewConversation={handleNewConversation}
         onReload={conversations.reload}
