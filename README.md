@@ -314,7 +314,7 @@ These are acknowledged rather than solved:
 ### 2.1. Requirements
 
 - [Docker](https://docs.docker.com/engine/install/) with Compose v2 (`docker compose`).
-- An **NVIDIA GPU** with the [container toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) installed. The `ollama` service reserves one GPU, so the stack will not start without it. To run CPU-only, remove the `deploy.resources` block from the `ollama` service in [`deployments/compose.development.yml`](./deployments/compose.development.yml) — expect answers to take tens of seconds.
+- Optionally, an **NVIDIA GPU** with the [container toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) installed. Set `GPU=1` to reserve one for the `ollama` service, as described in [§2.2](#22-running-the-stack). The stack runs on the CPU by default — expect answers to take tens of seconds.
 - Roughly **6 GB of free disk space** for the two Ollama models, plus space for Postgres and Chroma data.
 
 Nothing else needs to be installed to run the stack — every service builds and runs in Docker. Node and Python are only needed for local tooling, covered in [§3](#-3-development).
@@ -338,6 +338,14 @@ Configuration is already committed: [`.env.dev`](./.env.dev) holds working devel
    ```
 
    On the **first** run this also downloads `qwen3:4b` and `nomic-embed-text`, which takes several minutes. The API waits for Chroma, Ollama and Postgres to report healthy before it starts, so the logs will sit quiet for a while — this is expected. Models are cached in `.ollama/`, so later starts are quick.
+
+   This target runs [`scripts/dev.bash`](./scripts/dev.bash), which starts the stack on the CPU unless you opt in to GPUs with `GPU=1`:
+
+   ```bash
+   make dev GPU=1
+   ```
+
+   That layers [`compose.development.gpu.yml`](./deployments/compose.development.gpu.yml) over the base compose file to reserve one NVIDIA GPU for `ollama`, and fails loudly if the GPU cannot be reserved — so a missing [container toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) is an error rather than a silent fall back to the CPU. The script prints which of the two it used on startup. `GPU=1 make dev` works too; it is read from the environment rather than from [`.env.dev`](./.env.dev), so it has to be passed on each run.
 
 3. Once the `web` service is up, open:
 

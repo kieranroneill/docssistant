@@ -5,7 +5,17 @@ SCRIPT_DIR=$(dirname "${0}")
 
 source "${SCRIPT_DIR}/utilities/_set_vars.sh"
 
-# Private: Stops the docker services.
+#######################################
+# Stops the docker services. Intended to run from an EXIT trap, so it preserves the exit code of
+# the command that triggered it.
+# Globals:
+#   INFO_PREFIX - read for logging.
+#   __DOCKER_PROJECT__ - the Docker Compose project to tear down.
+# Outputs:
+#   Writes progress to stdout.
+# Returns:
+#   The exit code the script was already exiting with.
+#######################################
 function _cleanup() {
   local exit_code=$?
 
@@ -21,10 +31,18 @@ function _cleanup() {
   exit "${exit_code}"
 }
 
+#######################################
 # Starts the necessary Docker services and runs integration tests.
-#
-# Examples
+# Globals:
+#   INFO_PREFIX - read for logging.
+#   __DOCKER_PROJECT__ - the Docker Compose project to start.
+# Outputs:
+#   Writes progress to stdout, then the pytest output.
+# Returns:
+#   The pytest exit code.
+# Examples:
 #   ./test_py_integration.bash
+#######################################
 function main {
   _set_vars
 

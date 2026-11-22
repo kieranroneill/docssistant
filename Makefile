@@ -41,9 +41,8 @@ install_py_deps:
 ###
 
 dev:
-	$(COMPOSE_DEV) \
-		up \
-		--build
+	@echo ">>> starting the development stack"
+	./scripts/dev.bash
 
 ###
 # database
@@ -64,7 +63,7 @@ migrations_upgrade_dev:
 		upgrade head
 
 create_migration:
-	test -n "$(MESSAGE)" || (echo 'Usage: make create_migration MESSAGE="adds boats table"' && exit 1)
+	test -n "$(MESSAGE)" || (echo 'Usage: make create_migration MESSAGE="adds conversations table"' && exit 1)
 	$(COMPOSE_DEV) \
 		 run \
 		--build \
