@@ -36,11 +36,18 @@ class MockChatAgent(AbstractChatAgent):
 
 
 class MockEmbeddingsAgent(AbstractEmbeddingsAgent):
+    _documents_response: list[list[float]] | None
     _query_response: list[float] | None
 
-    def __init__(self, logger: Logger, query_response: list[float] | None = None) -> None:
+    def __init__(
+        self,
+        logger: Logger,
+        documents_response: list[list[float]] | None = None,
+        query_response: list[float] | None = None,
+    ) -> None:
         super().__init__(logger=logger)
 
+        self._documents_response = documents_response
         self._query_response = query_response
 
     ##
@@ -48,13 +55,19 @@ class MockEmbeddingsAgent(AbstractEmbeddingsAgent):
     ##
 
     async def documents(self, texts: list[str]) -> list[list[float]]:
+        if self._documents_response is not None:
+            return self._documents_response
+
         return [[1.0, 0.0] for _ in texts]
 
     async def query(self, query: str) -> list[float]:
-        return [1.0, 0.0]
+        return self._query_response or [1.0, 0.0]
 
     def model(self) -> str:
         return "test-embeddings-model"
+
+    def set_documents_response(self, response: list[list[float]] | None) -> None:
+        self._documents_response = response
 
     def set_query_response(self, response: list[float]) -> None:
         self._query_response = response

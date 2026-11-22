@@ -2,7 +2,7 @@ from logging import Logger
 from pathlib import Path
 
 from indexer.services import IndexerService
-from libs.agents.clients import EmbeddingsAgent
+from libs.agents.clients import AbstractEmbeddingsAgent
 from libs.chroma.clients import ChromaClient
 from libs.defaults.controllers import BaseController
 from libs.postgres.clients import PostgresClient
@@ -10,13 +10,13 @@ from libs.postgres.clients import PostgresClient
 
 class IndexerController(BaseController):
     _chroma_client: ChromaClient
-    _embeddings_agent: EmbeddingsAgent
+    _embeddings_agent: AbstractEmbeddingsAgent
     _postgres_client: PostgresClient
 
     def __init__(
         self,
         chroma_client: ChromaClient,
-        embeddings_agent: EmbeddingsAgent,
+        embeddings_agent: AbstractEmbeddingsAgent,
         logger: Logger,
         postgres_client: PostgresClient,
     ):
@@ -26,13 +26,18 @@ class IndexerController(BaseController):
         self._embeddings_agent = embeddings_agent
         self._chroma_client = chroma_client
 
-    async def index(self, documents_path: Path) -> None:
+    async def index(self, documents_path: Path) -> int:
         """
         Creates a new Postgres session and runs the indexer.
 
         Args:
             documents_path: Path to the directory containing the documents to index.
+
+        Returns:
+            The number of documents indexed.
         """
+        indexed = 0
+
         try:
             async with self._postgres_client.create_session() as session:
                 indexer = IndexerService(
@@ -47,3 +52,5 @@ class IndexerController(BaseController):
             self._logger.info(f"document indexing completed ({indexed} documents indexed)")
         except Exception:
             self._logger.exception("document indexing failed")
+
+        return indexed
