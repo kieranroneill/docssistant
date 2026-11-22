@@ -1,6 +1,6 @@
 <div align="center">
 
-[![License: CC0-1.0](https://img.shields.io/github/license/kieranroneill/docssistant)](https://github.com/kieranroneill/docssistant/blob/main/LICENSE)
+[![License: AGPL-3.0-or-later](https://img.shields.io/github/license/kieranroneill/docssistant)](https://github.com/kieranroneill/docssistant/blob/main/LICENSE)
 
 </div>
 
@@ -816,7 +816,13 @@ Please read the [**contributing guide**](./CONTRIBUTING.md) to learn about the d
 
 ## 📄 7. License
 
-Please refer to the [LICENSE](./LICENSE) file.
+Copyright (C) 2026 Kieran O'Neill
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the [GNU Affero General Public License](./LICENSE) for more details.
+
+The AGPL is the GPL plus a network clause: if you run a modified version of this project as a service that users interact with over a network, section 13 requires you to offer those users the corresponding source. Running it unmodified, or privately, carries no such obligation.
 
 <sup>[Back to top ^][table-of-contents]</sup>
 
