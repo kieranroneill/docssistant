@@ -1,3 +1,11 @@
+# [1.2.0](https://github.com/[secure]/docssistant/compare/v1.1.0...v1.2.0) (2026-11-22)
+
+
+### Features
+
+* add more docs for document storage ([88b1513](https://github.com/[secure]/docssistant/commit/88b15135e7e80ccab68426a84115ac4f3e35a0b7))
+* **indexer:** add a graceful shutdown ([ea3586a](https://github.com/[secure]/docssistant/commit/ea3586ab8beedeea74c95e2f572c6de229682ace))
+
 # [1.1.0](https://github.com/[secure]/docssistant/compare/v1.0.0...v1.1.0) (2026-11-22)
 
 

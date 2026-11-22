@@ -1,6 +1,6 @@
 [project]
 name = "docssistant"
-version = "1.1.0"
+version = "1.2.0"
 description = "Docssistant is a document chat assistant that uses retrieval-augmented generation (RAG) to answer questions about your documents and cite its sources."
 readme = "README.md"
 license = "AGPL-3.0-or-later"
@@ -21,12 +21,9 @@ target-version = [ "py312" ]
 
 [tool.mypy]
 python_version = "3.12"
-files = ["api", "indexer", "libs", "test"]
-# 'api' and 'indexer' are namespace packages, so mypy needs the repository root as the base to
-# resolve them from - without it api/main.py and indexer/main.py both resolve to a module "main"
+files = [ "api", "indexer", "libs", "test" ]
 explicit_package_bases = true
 mypy_path = "."
-# every signature in this codebase is annotated; this keeps it that way
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 disallow_any_generics = true
@@ -35,13 +32,9 @@ strict_equality = true
 warn_redundant_casts = true
 warn_unused_configs = true
 warn_unused_ignores = true
-# not every dependency ships type information, and an unannotated third-party call is not
-# something this codebase can fix - the boundary is typed, the library's internals are not
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-# tests assign fakes over repository methods and pass stubs where clients are expected, which is
-# the point of a fake rather than an oversight
 module = "test.*"
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
