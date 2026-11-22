@@ -192,7 +192,9 @@ A few decisions worth calling out:
 
 **Temperature is 0.** For a question-answering tool over a fixed corpus, reproducibility is worth more than variety.
 
-**Conversation history is replayed in full.** Continuing a conversation re-sends its prior messages along with fresh excerpts for the new question. This is simple and correct for short conversations, and is the first thing that will need attention as they grow — see [§1.4](#14-how-a-document-is-indexed) for the known limits.
+**Every input to the model is bounded.** Three limits, all in `api/conversations/constants.py`, keep a request from growing without limit: the query itself is capped by `ChatRequest`, the excerpts assembled into the prompt are capped by a character budget, and continuing a conversation replays only its most recent turns. The last of these is the one that matters in practice — history is re-sent on every turn, so without a cap a long conversation eventually outgrows the context window and fails mid-session. Truncation is blunt: old turns are forgotten rather than summarised.
+
+**Calls to Ollama time out.** Both the chat and embedding clients set an explicit timeout, so a stalled model surfaces as an error rather than holding the request open indefinitely. The defaults are generous because generation is far slower without a GPU, and both are overridable — see [§4.2](#42-configuration).
 
 <sup>[Back to top ^][table-of-contents]</sup>
 
@@ -233,7 +235,7 @@ These are acknowledged rather than solved:
 - **No upload endpoint.** Documents are provided by placing them in `.documents/`; there is no UI for adding them.
 - **Fixed top-5 retrieval**, with no re-ranking, query rewriting or hybrid keyword search. The distance threshold is a blunt instrument tuned by eye against one embedding model, not a measured one.
 - **Citations are requested, not enforced.** The application assigns the numbers, but nothing validates that the `[n]` markers in an answer correspond to sources that were actually supplied.
-- **Unbounded query length.** `ChatRequest` sets a minimum but no maximum, and no timeout is set on either Ollama call.
+- **History is truncated, not summarised.** Past a set number of messages the oldest turns are simply dropped, so a long conversation silently forgets its own beginning.
 - **Unbounded context growth.** Full conversation history plus fresh excerpts will eventually exceed the model's context window; there is no summarisation or truncation strategy.
 - **Chunk orphans.** Superseded chunks are never garbage-collected from Chroma.
 - **PDF text extraction only.** Scanned PDFs without a text layer yield nothing (the indexer logs a warning and keeps the previous version); there is no OCR, and tables lose their structure.
@@ -471,13 +473,15 @@ Pull request CI runs Flake8 and both Python suites. Git hooks are managed by Hus
 
 The variables most worth knowing:
 
-| Variable                 | Default                    | Description                                                                                          |
-| ------------------------ | -------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `OLLAMA_CHAT_MODEL`      | `qwen3:4b`                 | The chat model. Pulled automatically on first start.                                                 |
-| `OLLAMA_EMBEDDING_MODEL` | `nomic-embed-text`         | The embedding model. Changing it invalidates the index and forces a re-index.                        |
-| `CHROMA_COLLECTION`      | `document_chunks_nomic_v1` | Chroma collection name. Encodes the embedding model, so change it alongside.                         |
-| `LOG_LEVEL`              | `DEBUG`                    | `DEBUG` logs the assembled prompt and retrieved excerpts, which is useful when inspecting retrieval. |
-| `API_PORT`               | `3000`                     | Host and container port for the API.                                                                 |
+| Variable                   | Default                    | Description                                                                                                                                     |
+| -------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OLLAMA_CHAT_MODEL`        | `qwen3:4b`                 | The chat model. Pulled automatically on first start.                                                                                            |
+| `OLLAMA_EMBEDDING_MODEL`   | `nomic-embed-text`         | The embedding model. Changing it invalidates the index and forces a re-index.                                                                   |
+| `CHROMA_COLLECTION`        | `document_chunks_nomic_v1` | Chroma collection name. Encodes the embedding model, so change it alongside.                                                                    |
+| `OLLAMA_CHAT_TIMEOUT`      | `180`                      | Seconds to wait for the chat model. Raise it for CPU-only hardware.                                                                             |
+| `OLLAMA_EMBEDDING_TIMEOUT` | `60`                       | Seconds to wait for the embedding model, on both the request path and the indexer.                                                              |
+| `LOG_LEVEL`                | `DEBUG`                    | `DEBUG` logs the assembled prompt, the retrieved excerpts and the distance of every match, which is what you tune `MAX_MATCH_DISTANCE` against. |
+| `API_PORT`                 | `3000`                     | Host and container port for the API.                                                                                                            |
 
 Compose supplies in-container hostnames (`api`, `chroma`, `ollama`, `postgres`) itself, so the `*_HOST` values in the `.env` files are only used when connecting from the host.
 

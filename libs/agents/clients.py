@@ -8,6 +8,7 @@ from langgraph.graph.state import CompiledStateGraph
 
 from libs.datetime.utilities import from_iso_string, now, to_iso_string
 
+from .constants import DEFAULT_CHAT_TIMEOUT, DEFAULT_EMBEDDING_TIMEOUT
 from .dtos import ChatMessage, ChatResult
 
 
@@ -67,8 +68,11 @@ class ChatAgent(AbstractChatAgent):
         if model_name is None:
             raise ValueError("OLLAMA_CHAT_MODEL environment variable is not set")
 
+        timeout = float(os.getenv("OLLAMA_CHAT_TIMEOUT") or DEFAULT_CHAT_TIMEOUT)
+
         model = ChatOllama(
             base_url=base_url,
+            client_kwargs={"timeout": timeout},
             model=model_name,
             temperature=0,
         )
@@ -133,8 +137,11 @@ class EmbeddingsAgent(AbstractEmbeddingsAgent):
         if model_name is None:
             raise ValueError("OLLAMA_EMBEDDING_MODEL environment variable is not set")
 
+        timeout = float(os.getenv("OLLAMA_EMBEDDING_TIMEOUT") or DEFAULT_EMBEDDING_TIMEOUT)
+
         self._model = OllamaEmbeddings(
             base_url=base_url,
+            client_kwargs={"timeout": timeout},
             model=model_name,
         )
 
