@@ -25,7 +25,7 @@ function main {
 
   if [ "${GPU}" = '1' ]; then
     printf "%b GPU requested, reserving an NVIDIA GPU for ollama... \n" "${INFO_PREFIX}"
-    compose_files+=('-f' './deployments/compose.development.gpu.yml')
+    compose_files+=('-f' './deployments/compose.gpu.yml')
   else
     printf "%b no GPU requested, running on the CPU — expect slower answers. \n" "${INFO_PREFIX}"
   fi
