@@ -1,20 +1,21 @@
 [project]
 name = "docssistant"
-version = "1.0.0"
+version = "1.1.0"
 description = "Docssistant is a document chat assistant that uses retrieval-augmented generation (RAG) to answer questions about your documents and cite its sources."
-authors = [
-  { name = "Kieran O'Neill", email = "hello@kieranoneill.com" }
-]
 readme = "README.md"
 requires-python = ">=3.12"
 
+[[project.authors]]
+name = "Kieran O'Neill"
+email = "hello@kieranoneill.com"
+
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = [ "setuptools>=68", "wheel" ]
 build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 120
-target-version = ["py312"]
+target-version = [ "py312" ]
 
 [tool.mypy]
 python_version = "3.12"
@@ -47,5 +48,5 @@ disallow_incomplete_defs = false
 include-package-data = true
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["api", "api.*", "indexer", "indexer.*", "libs", "libs.*"]
+where = [ "." ]
+include = [ "api", "api.*", "indexer", "indexer.*", "libs", "libs.*" ]

@@ -436,6 +436,8 @@ make format               # isort + black + prettier
 make test_py_unit         # fast, no containers needed
 make test_py_integration  # starts postgres, chroma and the api via compose.test.yml
 make test                 # both suites
+make lint_py              # flake8
+make format               # isort + black + prettier
 ```
 
 Each half can be run on its own where it is split: `typecheck_js` / `typecheck_py`, `format_js` / `format_py`.

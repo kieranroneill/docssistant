@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/[secure]/docssistant/compare/v1.0.0...v1.1.0) (2026-11-22)
+
+
+### Features
+
+* add guardrails ([#11](https://github.com/[secure]/docssistant/issues/11)) ([814d035](https://github.com/[secure]/docssistant/commit/814d03529b1d03f64028d795da773b107701a092))
+
 # 1.0.0 (2026-11-22)
 
 
