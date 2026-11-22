@@ -37,5 +37,5 @@ class PostgresClient:
             autoflush=False,
         )()
 
-    async def dispose(self):
-        return await self._engine.dispose()
+    async def dispose(self) -> None:
+        await self._engine.dispose()

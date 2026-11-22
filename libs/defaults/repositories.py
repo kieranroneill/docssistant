@@ -1,11 +1,18 @@
 from abc import ABC, abstractmethod
 from logging import Logger
-from typing import Generic, TypeVar
+from typing import Any, Generic, Protocol, TypeVar
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-Model = TypeVar("Model")
+
+class Identifiable(Protocol):
+    """Every model this repository handles is keyed by an id."""
+
+    id: Any
+
+
+Model = TypeVar("Model", bound=Identifiable)
 DTO = TypeVar("DTO")
 
 

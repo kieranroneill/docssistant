@@ -4,7 +4,6 @@ from logging import Logger
 
 from langchain.agents import create_agent
 from langchain_ollama import ChatOllama, OllamaEmbeddings
-from langgraph.graph.state import CompiledStateGraph
 
 from libs.datetime.utilities import from_iso_string, now, to_iso_string
 
@@ -80,7 +79,7 @@ class ChatAgent(AbstractChatAgent):
         self._model = model
 
     async def chat(self, messages: list[ChatMessage]) -> ChatResult:
-        agent: CompiledStateGraph = create_agent(
+        agent = create_agent(
             model=self._model,
             system_prompt=(
                 "Answer using the supplied document excerpts. "

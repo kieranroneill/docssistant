@@ -84,7 +84,7 @@ class DocumentChunkRepository:
         result = await self._collection.query(
             include=["documents", "metadatas", "distances"],
             n_results=limit,
-            query_embeddings=[embeddings],
+            query_embeddings=np.asarray([embeddings], dtype=np.float32),
             where=where,
         )
         documents = result["documents"]

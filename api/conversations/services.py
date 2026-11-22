@@ -213,13 +213,13 @@ class Service(BaseService):
         )
 
         try:
-            conversation = await self._conversation_repository.add(dto=conversation)
-            conversation = await self._conversation_repository.get_by_id_with_messages(_id=conversation.id)
+            added = await self._conversation_repository.add(dto=conversation)
+            saved = await self._conversation_repository.get_by_id_with_messages(_id=added.id)
 
-            if conversation is None:
+            if saved is None:
                 raise Exception("conversation is empty")
 
-            return ConversationWithMessagesResponse.from_dto(conversation)
+            return ConversationWithMessagesResponse.from_dto(saved)
         except Exception as e:
             self._logger.error(f"failed to save conversation '{conversation_id}': {e}")
 
