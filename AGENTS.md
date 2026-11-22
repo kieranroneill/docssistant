@@ -20,6 +20,7 @@ Run commands from the repository root.
 | ----------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `make install`                                                    | Install pnpm dependencies and Python dependencies into `.venv`.                 |
 | `make dev`                                                        | Build and start the development stack with Docker Compose and `.env.dev`.       |
+| `make start`                                                      | Build and start the production stack in the background.                         |
 | `pnpm dev` / `pnpm build`                                         | Start the Vite dev server or build the frontend.                                |
 | `pnpm exec tsc --noEmit --incremental false -p web/tsconfig.json` | Type-check the frontend.                                                        |
 | `make lint_py`                                                    | Run Flake8.                                                                     |
@@ -28,6 +29,7 @@ Run commands from the repository root.
 | `make test`                                                       | Run the integration and unit suites.                                            |
 | `make create_migration MESSAGE="describe schema change"`          | Generate an Alembic revision using the development stack.                       |
 | `make migrations_upgrade_dev` / `make migrations_downgrade_dev`   | Apply pending development migrations or roll back one revision.                 |
+| `make migrations_upgrade`                                         | Apply pending production migrations.                                            |
 
 ## Frontend
 

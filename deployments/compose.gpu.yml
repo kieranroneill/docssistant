@@ -1,0 +1,9 @@
+services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+              count: 1
+              driver: nvidia

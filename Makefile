@@ -3,8 +3,13 @@ COMPOSE_DEV := docker compose \
     -f ./deployments/compose.development.yml \
     --env-file .env.dev \
     -p docssistant-dev
+# the env file is optional, as the configuration can equally come from the environment
+COMPOSE := docker compose \
+    -f ./deployments/compose.yml \
+    $(if $(wildcard .env),--env-file .env,) \
+    -p docssistant
 
-.PHONY: create_migration dev install install_js_deps install_py_deps install_py_dev_deps format format_js format_py lint lint_py migrations_downgrade_dev migrations_upgrade_dev test test_integration test_py_integration test_unit test_py_unit typecheck typecheck_js typecheck_py
+.PHONY: create_migration dev start install install_js_deps install_py_deps install_py_dev_deps format format_js format_py lint lint_py migrations_downgrade_dev migrations_upgrade_dev migrations_upgrade test test_integration test_py_integration test_unit test_py_unit typecheck typecheck_js typecheck_py
 
 all: install
 
@@ -41,9 +46,12 @@ install_py_deps:
 ###
 
 dev:
-	$(COMPOSE_DEV) \
-		up \
-		--build
+	@echo ">>> starting the development stack"
+	./scripts/dev.bash
+
+start:
+	@echo ">>> starting the production stack"
+	./scripts/start.bash
 
 ###
 # database
@@ -63,8 +71,15 @@ migrations_upgrade_dev:
 		--rm alembic \
 		upgrade head
 
+migrations_upgrade:
+	$(COMPOSE) \
+		run \
+		--build \
+		--rm alembic \
+		upgrade head
+
 create_migration:
-	test -n "$(MESSAGE)" || (echo 'Usage: make create_migration MESSAGE="adds boats table"' && exit 1)
+	test -n "$(MESSAGE)" || (echo 'Usage: make create_migration MESSAGE="adds conversations table"' && exit 1)
 	$(COMPOSE_DEV) \
 		 run \
 		--build \

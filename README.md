@@ -1,6 +1,6 @@
 <div align="center">
 
-[![License: CC0-1.0](https://img.shields.io/github/license/kieranroneill/docssistant)](https://github.com/kieranroneill/docssistant/blob/main/LICENSE)
+[![License: AGPL-3.0-or-later](https://img.shields.io/github/license/kieranroneill/docssistant)](https://github.com/kieranroneill/docssistant/blob/main/LICENSE)
 
 </div>
 
@@ -36,6 +36,7 @@
   - [2.3. Adding your own documents](#23-adding-your-own-documents)
   - [2.4. Service endpoints](#24-service-endpoints)
   - [2.5. Shutting down and resetting](#25-shutting-down-and-resetting)
+  - [2.6. Running in production mode](#26-running-in-production-mode)
 - [3. Development](#-3-development)
   - [3.1. Requirements](#31-requirements)
   - [3.2. Local tooling](#32-local-tooling)
@@ -69,21 +70,21 @@ flowchart TB
     user([User])
 
     subgraph client["Browser"]
-        web["<b>web</b><br/>:8080/app"]
+        web["<b>web</b><br/>[:8080]/app"]
     end
 
     subgraph runtime["Application Runtimes"]
-        api["<b>api</b><br/>:3000"]
-        indexer["<b>indexer</b>"]
+        api["<b>api</b><br/>[:3000]"]
+        indexer["<b>indexer<br/>[:]</b>"]
     end
 
     subgraph models["Models"]
-        ollama["<b>ollama</b><br/>qwen3:4b (chat)<br/>nomic-embed-text (embeddings)<br/>:11434"]
+        ollama["<b>ollama</b><br/>qwen3:4b (chat)<br/>nomic-embed-text (embeddings)<br/>[:11434]"]
     end
 
     subgraph storage["Storage"]
-        postgres[("<b>postgres</b><br/>conversations, messages,<br/>sources, document versions<br/>:5432")]
-        chroma[("<b>chroma</b><br/>chunk embeddings<br/>HNSW / cosine<br/>:8000")]
+        postgres[("<b>postgres</b><br/>conversations, messages,<br/>sources, document versions<br/>[:5432]")]
+        chroma[("<b>chroma</b><br/>chunk embeddings<br/>HNSW / cosine<br/>[:8000]")]
         documents["<b>.documents/</b><br/>source files<br/>(read-only mount)"]
     end
 
@@ -107,11 +108,11 @@ flowchart TB
 
 ### 1.2. Components
 
-Each box above is a Compose service defined in [`deployments/compose.development.yml`](./deployments/compose.development.yml), built from a Dockerfile in [`build/package/`](./build/package).
+Each box above is a Compose service, defined in [`deployments/compose.development.yml`](./deployments/compose.development.yml) for development and [`deployments/compose.yml`](./deployments/compose.yml) for production, built from a Dockerfile in [`build/package/`](./build/package).
 
 #### `web` — the chat interface
 
-A React 19 + TypeScript single-page app built with Vite and styled with Tailwind CSS v4. It is served under the `/app` base path and talks to the API through Vite's dev-server proxy, so the browser only ever sees same-origin `/api/*` requests and there is no CORS configuration to maintain.
+A React 19 + TypeScript single-page app built with Vite and styled with Tailwind CSS v4. It is served under the `/app` base path and reaches the API through a same-origin reverse proxy, so the browser only ever sees `/api/*` requests on its own origin and there is no CORS configuration to maintain. In development that proxy is Vite's dev server; in production the built assets are served by nginx, which proxies `/api` to the API container ([§2.6](#26-running-in-production-mode)). The frontend itself is identical either way — it just calls relative paths.
 
 The UI renders a conversation, streams nothing (responses are returned whole), and shows each assistant message's citations as footnote-style links. Clicking a citation hits `GET /api/documents/{document_id}`, which returns the original file so the user can check the claim against the source. Code is organised by feature (`web/src/conversation/`) over a shared platform layer (`web/src/platform/`); the conventions are documented in [AGENTS.md](./AGENTS.md).
 
@@ -216,7 +217,7 @@ flowchart TB
     fingerprint["fingerprint<br/>sha256(embedding model + chunk params + content)"] --> decide
 
     decide{"fingerprint already<br/>indexed?"}
-    decide -->|"yes, and active"| skip["skip — document unchanged"]
+    decide -->|"yes, and active"| skip["document remains unchanged"]
     decide -->|"yes, but inactive"| reactivate["re-publish existing version"]
     decide -->|"no"| embed
 
@@ -270,7 +271,9 @@ These are acknowledged rather than solved:
 │   │   └── ...
 │   └── ...
 ├─ deployments/                             <-- Container orchestration configurations
+│   ├── compose.yml                         <-- Production stack
 │   ├── compose.development.yml
+│   ├── compose.gpu.yml                     <-- GPU overlay, shared by both stacks
 │   ├── compose.test.yml
 │   └── ...
 ├─ indexer/                                 <-- Indexer worker - scans for documents and indexes them
@@ -314,7 +317,7 @@ These are acknowledged rather than solved:
 ### 2.1. Requirements
 
 - [Docker](https://docs.docker.com/engine/install/) with Compose v2 (`docker compose`).
-- An **NVIDIA GPU** with the [container toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) installed. The `ollama` service reserves one GPU, so the stack will not start without it. To run CPU-only, remove the `deploy.resources` block from the `ollama` service in [`deployments/compose.development.yml`](./deployments/compose.development.yml) — expect answers to take tens of seconds.
+- Optionally, an **NVIDIA GPU** with the [container toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) installed. Set `GPU=1` to reserve one for the `ollama` service, as described in [§2.2](#22-running-the-stack). The stack runs on the CPU by default — expect answers to take tens of seconds.
 - Roughly **6 GB of free disk space** for the two Ollama models, plus space for Postgres and Chroma data.
 
 Nothing else needs to be installed to run the stack — every service builds and runs in Docker. Node and Python are only needed for local tooling, covered in [§3](#-3-development).
@@ -338,6 +341,14 @@ Configuration is already committed: [`.env.dev`](./.env.dev) holds working devel
    ```
 
    On the **first** run this also downloads `qwen3:4b` and `nomic-embed-text`, which takes several minutes. The API waits for Chroma, Ollama and Postgres to report healthy before it starts, so the logs will sit quiet for a while — this is expected. Models are cached in `.ollama/`, so later starts are quick.
+
+   This target runs [`scripts/dev.bash`](./scripts/dev.bash), which starts the stack on the CPU unless you opt in to GPUs with `GPU=1`:
+
+   ```bash
+   make dev GPU=1
+   ```
+
+   That layers [`compose.gpu.yml`](./deployments/compose.gpu.yml) over the base compose file to reserve one NVIDIA GPU for `ollama`, and fails loudly if the GPU cannot be reserved — so a missing [container toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) is an error rather than a silent fall back to the CPU. The script prints which of the two it used on startup. `GPU=1 make dev` works too; it is read from the environment rather than from [`.env.dev`](./.env.dev), so it has to be passed on each run.
 
 3. Once the `web` service is up, open:
 
@@ -373,6 +384,8 @@ Editing a file re-indexes it and removing one takes it out of retrieval, both au
 
 ### 2.4. Service endpoints
 
+These are the endpoints of the development stack, which publishes every service to the host. The production stack publishes only `web`, and everything else is reachable solely on the internal Docker network — see [§2.6](#26-running-in-production-mode).
+
 | Service      | URL                               | Notes                                               |
 | ------------ | --------------------------------- | --------------------------------------------------- |
 | `web`        | http://localhost:8080/app         | The chat interface.                                 |
@@ -394,6 +407,38 @@ docker compose -f ./deployments/compose.development.yml --env-file .env.dev -p d
 ```
 
 State lives in gitignored directories on the host: `.chroma/` (embeddings), `.postgres/` (conversations and document versions) and `.ollama/` (downloaded models). Deleting `.chroma/` and `.postgres/` gives you a clean slate — re-run the migrations afterwards, and the indexer will rebuild the index from `.documents/` on next start. Keep `.ollama/` unless you want to download the models again.
+
+<sup>[Back to top ^][table-of-contents]</sup>
+
+### 2.6. Running in production mode
+
+[`deployments/compose.yml`](./deployments/compose.yml) runs the same six services without the development conveniences: no source bind mounts or hot-reloading, `ENVIRONMENT=production`, `LOG_LEVEL=INFO`, and named Docker volumes in place of the `.chroma/`, `.postgres/` and `.ollama/` host directories. Only `web` publishes a port — the API, Chroma, Ollama and Postgres are reachable only on the internal Docker network.
+
+`POSTGRES_PASSWORD` has no default here, so set it before starting. Either export it, or put it in a `.env` file in the repository root, which is gitignored and picked up automatically:
+
+```bash
+echo 'POSTGRES_PASSWORD=choose-something' > .env
+```
+
+Apply the migrations, then start the stack in the background:
+
+```bash
+make migrations_upgrade
+make start
+```
+
+The frontend is then on http://localhost:8080/app. `GPU=1 make start` reserves a GPU exactly as it does for `make dev`, layering the same [`compose.gpu.yml`](./deployments/compose.gpu.yml). Override the published port with `WEB_PORT`, and the documents directory with `DOCUMENTS_PATH`, which is mounted read-only into both `api` and `indexer`.
+
+Follow the logs, or stop everything:
+
+```bash
+docker compose -f ./deployments/compose.yml -p docssistant logs -f
+docker compose -f ./deployments/compose.yml -p docssistant down
+```
+
+Unlike development, `web` is built and served as static files by nginx rather than by the Vite dev server, and it reverse-proxies `/api` to the API service. The `VITE_*` values are inlined into the bundle at build time, so changing `TITLE`, `DESCRIPTION` or `LOG_LEVEL` needs a rebuild rather than a restart.
+
+> ⚠️ **NOTE:** This gets the stack running in production mode on a single host. It terminates plain HTTP and has no authentication, so put it behind a proxy that holds the TLS certificate and restrict who can reach it. [§4.5](#45-productionising-on-aws) sketches what a real deployment would change.
 
 <sup>[Back to top ^][table-of-contents]</sup>
 
@@ -568,7 +613,7 @@ What is missing: no tracing, no metrics backend, no dashboards, no alerting, and
 
 **Layered by feature, not by type.** Each feature module owns its routes, requests, responses, DTOs, services, repositories, models and errors. HTTP concerns stay in routes, application logic in services, persistence in repositories. The split is enforced by convention rather than tooling, and it is documented in [AGENTS.md](./AGENTS.md) so that it is legible to both people and coding assistants.
 
-**The frontend talks to the API through a dev-server proxy.** The browser only ever issues same-origin `/api/*` requests, so there is no CORS configuration to maintain and no preflight behaviour to debug.
+**The frontend reaches the API through a same-origin proxy, never a configured base URL.** The browser only ever issues same-origin `/api/*` requests, so there is no CORS configuration to maintain and no preflight behaviour to debug. The proxy is Vite's dev server in development and nginx in production, which means the bundle has no API host baked into it and the same build runs anywhere.
 
 **Everything runs in Docker, including the tools.** Alembic runs as a Compose service against the same image and environment as the API, so a migration generated locally is generated against the same Postgres version it will be applied to.
 
@@ -592,7 +637,7 @@ What is missing: no tracing, no metrics backend, no dashboards, no alerting, and
 - **Python test coverage is thin.** The integration suite covers the chat endpoint and the indexer end to end, which are the two things most likely to break; unit coverage beyond that is sparse.
 - **No end-to-end tests** across the browser and API.
 - **No authentication or multi-tenancy.** Every conversation is visible to every visitor. This is a demonstration, and adding auth badly would be worse than leaving it out knowingly.
-- **No production deployment.** There is a development Compose stack and a test one, but no production configuration, no infrastructure-as-code and nothing deployed.
+- **Not fully production ready.** There is Compose configurations for development and production, but no infrastructure-as-code and nothing deployed is actually deployed.
 
 ### 4.4. AI-assisted development
 
@@ -707,7 +752,9 @@ Multi-region, a cross-region read replica, or a CDN for anything beyond the stat
 | `make lint`                                                  | Lints all source files.                                          |
 | `make lint_py`                                               | Lints Python source files with Flake8.                           |
 | `make migrations_downgrade_dev`                              | Rolls back the latest migration (development).                   |
+| `make migrations_upgrade`                                    | Applies all pending migrations (production).                     |
 | `make migrations_upgrade_dev`                                | Applies all pending migrations (development).                    |
+| `make start`                                                 | Builds and runs the whole platform in production mode.           |
 | `make test`                                                  | Runs the integration and unit suites.                            |
 | `make test_integration`                                      | Runs all integration tests.                                      |
 | `make test_py_integration`                                   | Runs the Python integration tests via Docker Compose.            |
@@ -722,6 +769,8 @@ Multi-region, a cross-region read replica, or a CDN for anything beyond the stat
 ### 5.2. Configuration
 
 [`.env.example`](./.env.example) documents every supported variable; [`.env.dev`](./.env.dev) and [`.env.test`](./.env.test) are the committed development and test values. They contain no secrets — the Postgres password is a local default and should not survive into any real deployment.
+
+The production stack reads a gitignored `.env` in the repository root instead, falling back to the environment when that file is absent. It requires `POSTGRES_PASSWORD`, which has no default there, and additionally understands `WEB_PORT` (the only published port) and `DOCUMENTS_PATH` (the host directory mounted read-only into `api` and `indexer`).
 
 The variables most worth knowing:
 
@@ -767,7 +816,13 @@ Please read the [**contributing guide**](./CONTRIBUTING.md) to learn about the d
 
 ## 📄 7. License
 
-Please refer to the [LICENSE](./LICENSE) file.
+Copyright (C) 2026 Kieran O'Neill
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the [GNU Affero General Public License](./LICENSE) for more details.
+
+The AGPL is the GPL plus a network clause: if you run a modified version of this project as a service that users interact with over a network, section 13 requires you to offer those users the corresponding source. Running it unmodified, or privately, carries no such obligation.
 
 <sup>[Back to top ^][table-of-contents]</sup>
 
