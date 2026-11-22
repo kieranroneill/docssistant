@@ -9,6 +9,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from libs.defaults.repositories import BaseRepository
 
+from .constants import MAX_MATCH_DISTANCE
 from .dtos import DocumentChunk, DocumentMatch, DocumentVersion
 from .models import DocumentVersionModel
 
@@ -39,8 +40,33 @@ class DocumentChunkRepository:
         embeddings: list[float],
         active_versions: list[DocumentVersion],
         limit: int = 5,
+        max_distance: float = MAX_MATCH_DISTANCE,
     ) -> list[DocumentMatch]:
-        # Never fall back to an unfiltered query: staged/legacy chunks are private.
+        """
+        Performs a constrained vector similarity lookup for document chunks and applies a distance threshold to keep
+        only relevant matches. The lookup is skipped when no constraints are available, preventing broad, unfiltered
+        retrieval.
+
+        Note: Chroma's collection uses cosine distance, so 0.0 is an exact match and 2.0 is the opposite. A top-k search
+        always returns its k nearest chunks, even when every one of them is unrelated, so without an upper bound an
+        unanswerable question still reaches the chat agent with plausible-looking context. This value is deliberately
+        permissive: it is meant to discard the clearly irrelevant, not to make fine-grained relevance judgements.
+
+        Args:
+            embeddings: Embedding vector used as the query for nearest-neighbour matching.
+            active_versions: Document versions that constrain the search scope.
+            limit: Maximum number of nearest candidates to request before relevance filtering.
+            max_distance: Maximum accepted distance for a candidate to be considered relevant.
+
+        Returns:
+            Relevant document matches whose distances do not exceed the configured maximum distance.
+
+        Raises:
+            ValueError: If returned result groups cannot be combined because their lengths differ, or if numeric
+            metadata cannot be converted.
+            KeyError: If required metadata is missing from a returned result.
+        """
+        # never fall back to an unfiltered query
         if not active_versions:
             return []
 
@@ -68,7 +94,7 @@ class DocumentChunkRepository:
         if documents is None or metadatas is None or distances is None:
             return []
 
-        return [
+        matches = [
             DocumentMatch(
                 chunk_index=int(str(metadata["chunk_index"])),
                 content=content,
@@ -84,6 +110,25 @@ class DocumentChunkRepository:
                 strict=True,
             )
         ]
+
+        # drop anything the query is not actually close to
+        # a nearest-neighbour search has no  concept of "no answer" - it returns its k closest chunks regardless - so
+        # this is what lets the caller distinguish a weak match from a real one and abstain.
+        relevant = [match for match in matches if match.distance <= max_distance]
+
+        for match in matches:
+            self._logger.debug(
+                f"match '{match.source}' chunk {match.chunk_index} has a distance of {match.distance:.4f} "
+                f"({'kept' if match.distance <= max_distance else 'discarded'})"
+            )
+
+        if len(relevant) < len(matches):
+            self._logger.debug(
+                f"discarded {len(matches) - len(relevant)} of {len(matches)} matches "
+                f"above the maximum distance of {max_distance}"
+            )
+
+        return relevant
 
     async def upsert(
         self,

@@ -182,7 +182,9 @@ A few decisions worth calling out:
 
 **Retrieval is always filtered.** The Chroma query is constrained to the `(document_id, version)` pairs Postgres reports as active, and the repository deliberately returns nothing rather than falling back to an unfiltered search when there are no active versions. A fallback would silently expose staged or superseded chunks; returning nothing is the safer failure.
 
-**No matches means no model call.** If retrieval is empty the service returns a fixed message and never invokes the LLM, so the model is never given the opportunity to answer from parametric memory. This is the cheapest and most reliable guardrail against unsourced answers.
+**Weak matches are discarded before they become context.** A nearest-neighbour search has no concept of "no answer" — asked something the corpus cannot support, it still returns its five closest chunks. Matches beyond a maximum cosine distance (`MAX_MATCH_DISTANCE` in `libs/documents/constants.py`) are therefore dropped, which is what gives the system the ability to recognise an unanswerable question at all. The threshold is deliberately permissive: its job is to reject the clearly irrelevant, not to make fine-grained relevance judgements.
+
+**No matches means no model call.** If retrieval comes back empty — because nothing matched, or because everything that matched was too distant — the service returns a fixed message and never invokes the LLM, so the model is never given the opportunity to answer from parametric memory. This is the cheapest and most reliable guardrail against unsourced answers.
 
 **Context is assembled by the application, not the model.** Matches are formatted into a numbered block — `[1] handbook.pdf, page 12` followed by the chunk text — and appended to the user's question. The citation numbers the model is asked to use are the same numbers the application assigned, so every `[n]` in the answer maps back to a concrete chunk, page and file. Those mappings are persisted per message, which is what lets the UI turn a citation into a link to the source file.
 
@@ -229,7 +231,9 @@ flowchart TB
 These are acknowledged rather than solved:
 
 - **No upload endpoint.** Documents are provided by placing them in `.documents/`; there is no UI for adding them.
-- **Fixed top-5 retrieval**, with no re-ranking, query rewriting or hybrid keyword search, and no minimum distance threshold — a weakly relevant chunk is still passed to the model.
+- **Fixed top-5 retrieval**, with no re-ranking, query rewriting or hybrid keyword search. The distance threshold is a blunt instrument tuned by eye against one embedding model, not a measured one.
+- **Citations are requested, not enforced.** The application assigns the numbers, but nothing validates that the `[n]` markers in an answer correspond to sources that were actually supplied.
+- **Unbounded query length.** `ChatRequest` sets a minimum but no maximum, and no timeout is set on either Ollama call.
 - **Unbounded context growth.** Full conversation history plus fresh excerpts will eventually exceed the model's context window; there is no summarisation or truncation strategy.
 - **Chunk orphans.** Superseded chunks are never garbage-collected from Chroma.
 - **PDF text extraction only.** Scanned PDFs without a text layer yield nothing (the indexer logs a warning and keeps the previous version); there is no OCR, and tables lose their structure.

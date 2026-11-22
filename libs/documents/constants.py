@@ -1,1 +1,2 @@
+MAX_MATCH_DISTANCE = 0.75
 SUPPORTED_DOCUMENT_EXTENSIONS = {".md", ".pdf", ".txt"}
