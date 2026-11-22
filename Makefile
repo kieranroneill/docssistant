@@ -4,7 +4,7 @@ COMPOSE_DEV := docker compose \
     --env-file .env.dev \
     -p docssistant-dev
 
-.PHONY: create_migration dev install install_js_deps install_py_deps install_py_dev_deps format format_js format_py migrations_downgrade_dev migrations_upgrade_dev test test_unit test_py_unit
+.PHONY: create_migration dev install install_js_deps install_py_deps install_py_dev_deps format format_js format_py lint lint_py migrations_downgrade_dev migrations_upgrade_dev test test_integration test_py_integration test_unit test_py_unit typecheck typecheck_js typecheck_py
 
 all: install
 
@@ -128,3 +128,21 @@ test_py_unit:
 	python3 -m venv .venv
 	source .venv/bin/activate && \
 		python3 -m pytest test/unit
+
+###
+# typecheck
+###
+
+typecheck:
+	${MAKE} typecheck_js
+	${MAKE} typecheck_py
+
+typecheck_js:
+	@echo ">>> typecheck typescript"
+	pnpm exec tsc --noEmit --incremental false -p web/tsconfig.json
+
+typecheck_py:
+	@echo ">>> typecheck python"
+	python3 -m venv .venv
+	source .venv/bin/activate && \
+		python3 -m mypy
