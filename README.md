@@ -356,9 +356,24 @@ Configuration is already committed: [`.env.dev`](./.env.dev) holds working devel
    http://localhost:8080/app
    ```
 
-   The repository ships with one sample PDF in `.documents/`, which the indexer will have picked up on startup — so you can ask a question immediately.
+   The repository ships with a corpus of WHO infection prevention and control (IPC) publications in `.documents/`, which the indexer will have picked up on startup — so you can ask a question immediately.
 
    ![The empty state, showing the conversation sidebar and the question composer](./assets/empty-state.png)
+
+   Some questions to try against it:
+
+   | Question                                                                  | What to look for                                                                           |
+   | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+   | What is the recommended ratio of trained IPC focal points to beds?        | One per 250 beds, cited to the minimum requirements.                                       |
+   | Does a primary health care facility need a full-time IPC focal point?     | No — a part-time trained link person. Tests whether retrieval picks the right care level.  |
+   | How often must front-line staff be trained in IPC in a tertiary facility? | On hire _and_ annually, unlike primary and secondary care.                                 |
+   | How far from a toilet must hand hygiene materials be?                     | Within 5 metres.                                                                           |
+   | What are the five moments for hand hygiene?                               | Answered from the hand hygiene guidelines, not the minimum requirements.                   |
+   | How do the minimum requirements relate to the WHO core components?        | A synthesis citing both documents.                                                         |
+   | What does this guidance say about COVID-19 isolation periods?             | A refusal — the corpus predates COVID-19. Fabricating an answer is the worst failure here. |
+   | Who is the current Director-General of the WHO?                           | A refusal — not in the supplied documents.                                                 |
+
+   Asking the same question twice should give the same answer and the same citations, since the chat model runs at `temperature=0`.
 
 > ⚠️ **NOTE:** Run the migrations _before_ `make dev`. The indexer performs its first indexing pass at startup, and if the schema doesn't exist yet that pass fails and logs an error. It will recover on the next file change, but it is simpler to migrate first.
 
