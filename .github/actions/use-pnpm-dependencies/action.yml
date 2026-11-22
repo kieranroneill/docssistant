@@ -2,6 +2,11 @@ name: 'Use pnpm Dependencies'
 
 description: 'Checks if the pnpm dependencies have been cached with the hash of the pnpm-lock.yaml file.'
 
+inputs:
+  node-version:
+    description: 'Node.js version or version range to install.'
+    default: '24'
+
 runs:
   using: 'composite'
   steps:
@@ -12,7 +17,7 @@ runs:
     - name: '🔧 Setup Node'
       uses: actions/setup-node@v4
       with:
-        node-version: '24'
+        node-version: ${{ inputs.node-version }}
         cache: 'pnpm'
         cache-dependency-path: '**/pnpm-lock.yaml'
     - name: '📦 Install'

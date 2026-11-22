@@ -26,6 +26,8 @@ jobs:
           fetch-depth: 0
       - name: '🔧 Setup Node'
         uses: ./.github/actions/use-pnpm-dependencies
+        with:
+          node-version: '>=26.13 <27'
       - name: '🔖 Release'
         env:
           # appears on the release commits
