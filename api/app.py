@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI
 
 from api.conversations.routes import router as conversations_router
+from api.documents.routes import router as documents_router
 from api.healthcheck.routes import router as healthcheck_router
 from api.versions.routes import router as versions_router
 from libs.agents.clients import ChatAgent, EmbeddingsAgent
@@ -22,6 +23,7 @@ def _create_app() -> FastAPI:
 
     # add routers
     _app.include_router(conversations_router)
+    _app.include_router(documents_router)
     _app.include_router(healthcheck_router)
     _app.include_router(versions_router)
 
@@ -34,6 +36,7 @@ async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
     chroma = ChromaClient(logger=logger)
     embeddings_agent = EmbeddingsAgent(logger=logger)
     postgres = PostgresClient(logger=logger)
+    root_path = Path(__file__).resolve().parents[1]
 
     try:
         await chroma.initialize()
@@ -41,6 +44,7 @@ async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
         # attach dependencies
         _app.state.chat_agent = ChatAgent(logger=logger)
         _app.state.chroma = chroma
+        _app.state.documents_path = root_path / ".documents"
         _app.state.embeddings_agent = embeddings_agent
         _app.state.logger = logger
         _app.state.postgres = postgres
@@ -48,7 +52,7 @@ async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
             environment=os.environ["ENVIRONMENT"],
             description=os.environ["DESCRIPTION"],
             title=f"{os.environ["TITLE"]} API",
-            version=get_version(pyproject_path=Path(__file__).resolve().parents[1] / "pyproject.toml"),
+            version=get_version(root_path / "pyproject.toml"),
         )
 
         yield

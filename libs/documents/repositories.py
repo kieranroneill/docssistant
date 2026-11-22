@@ -158,6 +158,22 @@ class DocumentVersionRepository(BaseRepository[DocumentVersionModel, DocumentVer
             await self._postgres_session.rollback()
             raise
 
+    async def get_by_document_id(self, document_id: UUID) -> DocumentVersion | None:
+        """
+        Returns document version by its document ID.
+
+        Args:
+            document_id: The document ID to retrieve.
+
+        Returns:
+            DocumentVersion | None: The document or None if no document exists.
+        """
+        statement = select(DocumentVersionModel).where(DocumentVersionModel.document_id == document_id)
+        result = await self._postgres_session.execute(statement)
+        model = result.scalar_one_or_none()
+
+        return DocumentVersion.from_model(model) if model else None
+
     async def get_all_active(self) -> list[DocumentVersion]:
         """
         Returns all active document versions.
