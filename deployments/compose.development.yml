@@ -162,9 +162,9 @@ services:
     environment:
       API_BASE_URL: ${API_BASE_URL:-http://api:3000}
       NODE_ENV: ${ENVIRONMENT:-development}
-      NEXT_PUBLIC_DESCRIPTION: ${DESCRIPTION:-"Docssistant is a document chat assistant that uses retrieval-augmented generation (RAG) to answer questions about your documents and cite its sources."}
-      NEXT_PUBLIC_LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
-      NEXT_PUBLIC_TITLE: ${TITLE:-Docssistant}
+      VITE_DESCRIPTION: ${DESCRIPTION:-"Docssistant is a document chat assistant that uses retrieval-augmented generation (RAG) to answer questions about your documents and cite its sources."}
+      VITE_LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
+      VITE_TITLE: ${TITLE:-Docssistant}
     image: kieranroneill/docssistant-web:development
     networks:
       - docssistant_network_dev

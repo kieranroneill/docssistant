@@ -3,17 +3,19 @@ import { createElement } from 'react';
 import { initReactI18next } from 'react-i18next';
 import { createRoot } from 'react-dom/client';
 
+import '@/platform/styles/global.css';
+
 // components
-import App from '@/containers/App';
+import App from '@/platform/application/containers/App';
 
 // enums
-import { LogLevelEnum } from '@/utilities/logging/createLogger';
+import { LogLevelEnum } from '@/platform/logging/utilities/createLogger';
 
 // translations
-import { en } from '@/translations';
+import { en } from '@/platform/translations';
 
 // utilities
-import createLogger from '@/utilities/logging/createLogger';
+import createLogger from '@/platform/logging/utilities/createLogger';
 
 export async function onDOMContentLoaded(): Promise<void> {
   const logger = createLogger((import.meta.env.VITE_LOG_LEVEL as LogLevelEnum) ?? LogLevelEnum.Error);
