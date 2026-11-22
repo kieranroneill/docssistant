@@ -4,7 +4,7 @@ from dataclasses import asdict
 from hashlib import sha256
 from logging import Logger
 from pathlib import Path
-from uuid import NAMESPACE_URL, uuid5
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from chromadb.api.models.AsyncCollection import AsyncCollection
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -103,7 +103,7 @@ class IndexerService(BaseService):
 
             return False
 
-        document_id = uuid5(NAMESPACE_URL, f"docssistant:document_store:{source}")
+        document_id = IndexerService.document_id_from_source(source=source)
         fingerprint = await to_thread(self._fingerprint, chunks)
         ids = [f"{document_id}:{fingerprint}:{index}" for index in range(len(chunks))]
         existing_ids = set(
@@ -167,6 +167,14 @@ class IndexerService(BaseService):
         )
 
         return True
+
+    ###
+    # public static methods
+    ###
+
+    @staticmethod
+    def document_id_from_source(source: str) -> UUID:
+        return uuid5(NAMESPACE_URL, f"docssistant:document_store:{source}")
 
     ###
     # public methods

@@ -1,4 +1,4 @@
 [flake8]
-exclude = .venv
+extend-exclude = .chroma,.ollama,.postgres,.venv,node_modules
 extend-ignore = E203
 max-line-length = 120

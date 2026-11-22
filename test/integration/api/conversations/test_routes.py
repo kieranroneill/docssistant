@@ -1,8 +1,7 @@
 from logging import Logger
-from test.mocks.agents.clients import MockChatAgent, MockEmbeddingsAgent
+from test.mocks.agents.clients import MockChatAgent
 from uuid import uuid4
 
-import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
@@ -17,27 +16,6 @@ from api.conversations.repositories import ConversationRepository
 from libs.application.enums import ErrorCode
 from libs.datetime.utilities import now
 from libs.documents.dtos import DocumentMatch
-from libs.logging.utilities import get_logger
-
-
-@pytest.fixture
-def logger() -> Logger:
-    return get_logger()
-
-
-@pytest.fixture(autouse=True)
-def agents(
-    logger: Logger,
-    mocker,
-):
-    mocker.patch(
-        "api.app.ChatAgent",
-        return_value=MockChatAgent(logger=logger),
-    )
-    mocker.patch(
-        "api.app.EmbeddingsAgent",
-        return_value=MockEmbeddingsAgent(logger=logger),
-    )
 
 
 class TestChatEndpoint:

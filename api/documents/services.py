@@ -9,15 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from libs.defaults.services import BaseService
 from libs.documents.repositories import DocumentVersionRepository
 
+from .constants import INLINE_MEDIA_TYPES
 from .errors import DocumentNotFoundError
-
-# the media types that browsers render in a tab, rather than download, keyed by file extension
-# markdown is served as plain text because browsers download "text/markdown" instead of rendering it
-INLINE_MEDIA_TYPES = {
-    ".md": "text/plain; charset=utf-8",
-    ".pdf": "application/pdf",
-    ".txt": "text/plain; charset=utf-8",
-}
 
 
 class Service(BaseService):
@@ -34,10 +27,6 @@ class Service(BaseService):
 
         self._documents_path = documents_path
         self._document_versions_repository = DocumentVersionRepository(logger=logger, postgres_session=postgres_session)
-
-    ###
-    # private methods
-    ###
 
     ###
     # public methods
