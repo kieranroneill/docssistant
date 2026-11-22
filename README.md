@@ -526,7 +526,7 @@ Layered, and deliberately biased towards controls the application enforces rathe
 
 The two I would call out as the ones that do real work:
 
-**The distance threshold is what makes abstention possible at all.** A nearest-neighbour search has no concept of "no answer" — ask it something the corpus cannot support and it still returns its five closest chunks. Before adding an upper bound on distance, the "no matches" branch was effectively unreachable, which meant the system would confidently answer questions about documents it had never seen. Discarding matches beyond a maximum distance is what gives the rest of the chain something honest to react to.
+**The distance threshold is what makes abstention possible at all.** A nearest-neighbour search has no concept of "no answer" — ask it something the corpus cannot support, and it still returns its five closest chunks. Before adding an upper bound on distance, the "no matches" branch was effectively unreachable, which meant the system would confidently answer questions about documents it had never seen. Discarding matches beyond a maximum distance is what gives the rest of the chain something honest to react to.
 
 **Not calling the model is the most reliable guardrail there is.** When retrieval comes back empty, the service returns a fixed message and never invokes the LLM. A model that is never asked cannot answer from memory, cannot be injected into and cannot hallucinate a citation. Every control that depends on the model behaving is weaker than one that removes the model from the path.
 
