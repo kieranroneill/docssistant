@@ -1,3 +1,4 @@
+from asyncio import Event
 from logging import Logger
 from pathlib import Path
 
@@ -26,12 +27,14 @@ class IndexerController(BaseController):
         self._embeddings_agent = embeddings_agent
         self._chroma_client = chroma_client
 
-    async def index(self, documents_path: Path) -> int:
+    async def index(self, documents_path: Path, stop_event: Event | None = None) -> int:
         """
         Creates a new Postgres session and runs the indexer.
 
         Args:
             documents_path: Path to the directory containing the documents to index.
+            stop_event: Optional event signalling that the process is shutting down, which stops the pass between
+                documents.
 
         Returns:
             The number of documents indexed.
@@ -47,7 +50,7 @@ class IndexerController(BaseController):
                     postgres_session=session,
                 )
 
-                indexed = await indexer.index(documents_path=documents_path)
+                indexed = await indexer.index(documents_path=documents_path, stop_event=stop_event)
 
             self._logger.info(f"document indexing completed ({indexed} documents indexed)")
         except Exception:

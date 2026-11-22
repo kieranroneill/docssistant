@@ -101,6 +101,7 @@ services:
     image: kieranroneill/docssistant-indexer:development
     networks:
       - docssistant_network_dev
+    stop_grace_period: 30s
     volumes:
       - ../.documents:/app/.documents:ro
       - ../indexer:/app/indexer:cached

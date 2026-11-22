@@ -1,5 +1,5 @@
 import json
-from asyncio import to_thread
+from asyncio import Event, to_thread
 from dataclasses import asdict
 from hashlib import sha256
 from logging import Logger
@@ -180,7 +180,20 @@ class IndexerService(BaseService):
     # public methods
     ###
 
-    async def index(self, documents_path: Path) -> int:
+    async def index(self, documents_path: Path, stop_event: Event | None = None) -> int:
+        """
+        Indexes every supported document in a directory, then deactivates the versions of any documents that have
+        since been removed.
+
+        Args:
+            documents_path: Path to the directory containing the documents to index.
+            stop_event: Optional event signalling that the process is shutting down. It is checked between documents,
+                so a pass stops after the document in flight rather than part way through one, and the deactivation of
+                removed documents is left to the next pass.
+
+        Returns:
+            The number of documents indexed.
+        """
         if not documents_path.is_dir():
             raise DocumentPathDoesNotExistError(f"document directory '{documents_path}' does not exist")
 
@@ -190,6 +203,10 @@ class IndexerService(BaseService):
         self._logger.info(f"indexing {len(paths)} documents from '{documents_path}'")
 
         for path in paths:
+            # a document is published in one transaction, so stopping between documents leaves no partial version
+            if stop_event and stop_event.is_set():
+                break
+
             if not path.is_file() or path.suffix.lower() not in SUPPORTED_DOCUMENT_EXTENSIONS:
                 continue
 
@@ -204,6 +221,12 @@ class IndexerService(BaseService):
                     indexed += 1
             except Exception as e:
                 self._logger.error(f"failed to index document '{path}': {e}")
+
+        # checked here as well as in the loop above, as there may have been no documents to iterate over
+        if stop_event and stop_event.is_set():
+            self._logger.info(f"shutting down, stopping this pass after {indexed} documents")
+
+            return indexed
 
         active_versions = await self._document_version_repository.get_all_active()
 

@@ -97,6 +97,7 @@ services:
     networks:
       - docssistant_network
     restart: unless-stopped
+    stop_grace_period: 30s
     volumes:
       - ${DOCUMENTS_PATH:-../.documents}:/app/.documents:ro
 
