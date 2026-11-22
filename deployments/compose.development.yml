@@ -44,6 +44,7 @@ services:
     volumes:
       # watch for changes on source code
       - ../api:/app/api:cached
+      - ../.documents:/app/.documents:ro
       - ../libs:/app/libs:cached
       - ../pyproject.toml:/app/pyproject.toml:cached
 

@@ -1,6 +1,9 @@
 import { type FC } from 'react';
 import { I18nextProvider } from 'react-i18next';
 
+// components
+import ThemeProvider from '@/platform/application/components/ThemeProvider';
+
 // containers
 import ConversationContainer from '@/conversation/containers/ConversationContainer';
 
@@ -13,7 +16,9 @@ const App: FC<Props> = ({ i18n, logger }) => {
       <meta name="description" content={i18n.t('captions.longDescription')} />
 
       <I18nextProvider i18n={i18n}>
-        <ConversationContainer logger={logger} />
+        <ThemeProvider>
+          <ConversationContainer logger={logger} />
+        </ThemeProvider>
       </I18nextProvider>
     </>
   );
