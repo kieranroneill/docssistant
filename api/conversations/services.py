@@ -15,6 +15,10 @@ from libs.documents.repositories import (
     DocumentVersionRepository,
 )
 
+from .constants import (
+    MAX_CONTEXT_CHARACTERS,
+    MAX_HISTORY_MESSAGES,
+)
 from .dtos import Conversation, ConversationMessage, ConversationSource, Usage
 from .errors import ConversationNotFoundError
 from .repositories import ConversationMessageRepository, ConversationRepository
@@ -87,6 +91,7 @@ class Service(BaseService):
 
         excerpts = []
         sources: list[ChatSource] = []
+        characters = 0
 
         # create extra context for the model with matched sources
         for number, match in enumerate(matches, start=1):
@@ -95,7 +100,21 @@ class Service(BaseService):
             if match.page_number is not None:
                 location += f", page {match.page_number}"
 
-            excerpts.append(f"[{number}] {location}\n{match.content}")
+            excerpt = f"[{number}] {location}\n{match.content}"
+
+            # stop before the prompt exceeds its budget, rather than letting it grow unchecked.
+            # matches are ordered by relevance, so what is dropped here is the weakest context.
+            if characters + len(excerpt) > MAX_CONTEXT_CHARACTERS:
+                self._logger.debug(
+                    f"excerpt budget of {MAX_CONTEXT_CHARACTERS} characters reached: "
+                    f"dropping {len(matches) - number + 1} of {len(matches)} matches"
+                )
+
+                break
+
+            characters += len(excerpt)
+
+            excerpts.append(excerpt)
             sources.append(
                 ChatSource(
                     chunk_index=match.chunk_index,
@@ -216,8 +235,18 @@ class Service(BaseService):
                 status_code=status.HTTP_404_NOT_FOUND
             )
 
+        # only the most recent turns are replayed; the whole history is re-sent on every turn,
+        # so an unbounded conversation would eventually outgrow the model's context window
+        history = conversation.messages[-MAX_HISTORY_MESSAGES:]
+
+        if len(history) < len(conversation.messages):
+            self._logger.debug(
+                f"replaying the most recent {len(history)} of {len(conversation.messages)} messages "
+                f"in conversation '{conversation_id}'"
+            )
+
         result, sources = await self._call_agents(
-            messages=[ChatMessage(content=message.content, role=message.role) for message in conversation.messages],
+            messages=[ChatMessage(content=message.content, role=message.role) for message in history],
             query=query,
         )
         sequence = len(conversation.messages) + 1

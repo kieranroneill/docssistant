@@ -6,6 +6,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from api.app import app
+from api.conversations.constants import MAX_QUERY_LENGTH
 from api.conversations.dtos import (
     Conversation,
     ConversationMessage,
@@ -31,6 +32,31 @@ class TestChatEndpoint:
 
         assert result.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         assert result.json()["detail"][0]["loc"] == ["body", "query"]
+
+    def test_should_fail_with_an_over_long_query(
+        self,
+        logger: Logger,
+    ) -> None:
+        with TestClient(app) as client:
+            result = client.post(
+                "/api/conversations/chat",
+                json={"query": "a" * (MAX_QUERY_LENGTH + 1)},
+            )
+
+        assert result.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+        assert result.json()["detail"][0]["loc"] == ["body", "query"]
+
+    def test_should_accept_a_query_at_the_maximum_length(
+        self,
+        logger: Logger,
+    ) -> None:
+        with TestClient(app) as client:
+            result = client.post(
+                "/api/conversations/chat",
+                json={"query": "a" * MAX_QUERY_LENGTH},
+            )
+
+        assert result.status_code != status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_should_fail_if_no_conversation_exists(
         self,
