@@ -1,6 +1,32 @@
 export default {
-  captions: {},
-  headings: {},
-  labels: {},
+  captions: {
+    longDescription:
+      'Docssistant is a document chat assistant that uses retrieval-augmented generation (RAG) to answer questions about your documents and cite its sources.',
+    composerSendError: 'Your message could not be sent. It has been restored to the box below so you can try again.',
+    conversationLoadError: 'This conversation could not be loaded.',
+    conversationsLoadError: 'Conversations could not be loaded.',
+    emptyConversation: 'Ask a question about your documents to get started.',
+    noConversations: 'You have no conversations yet.',
+  },
+  headings: {
+    conversations: 'Conversations',
+    emptyConversation: 'Start a conversation',
+    sources: 'Sources',
+  },
+  labels: {
+    assistant: 'Assistant',
+    closeSidebar: 'Close conversations',
+    composerPlaceholder: 'Ask a question about your documents…',
+    dismiss: 'Dismiss',
+    loadingConversation: 'Loading conversation…',
+    loadingConversations: 'Loading conversations…',
+    newConversation: 'New conversation',
+    openSidebar: 'Open conversations',
+    page: 'page {{number}}',
+    retry: 'Retry',
+    send: 'Send message',
+    sending: 'Sending…',
+    you: 'You',
+  },
   titles: {},
 } satisfies Record<string, unknown>;

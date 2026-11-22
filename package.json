@@ -14,7 +14,6 @@
     "build": "vite build web",
     "dev": "vite web",
     "format": "prettier --write . \"!**/.postgres/**\" \"!**/.ollama/**\"",
-    "lint": "eslint .",
     "prepare": "husky"
   },
   "dependencies": {
