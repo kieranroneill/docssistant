@@ -11,6 +11,14 @@ from libs.documents.repositories import DocumentVersionRepository
 
 from .errors import DocumentNotFoundError
 
+# the media types that browsers render in a tab, rather than download, keyed by file extension
+# markdown is served as plain text because browsers download "text/markdown" instead of rendering it
+INLINE_MEDIA_TYPES = {
+    ".md": "text/plain; charset=utf-8",
+    ".pdf": "application/pdf",
+    ".txt": "text/plain; charset=utf-8",
+}
+
 
 class Service(BaseService):
     _documents_path: Path
@@ -56,11 +64,11 @@ class Service(BaseService):
                 status_code=status.HTTP_404_NOT_FOUND
             )
 
-        is_pdf = path.suffix.lower() == ".pdf"
+        media_type = INLINE_MEDIA_TYPES.get(path.suffix.lower())
 
         return FileResponse(
             path=path,
             filename=Path(document.source).name,
-            media_type="application/pdf" if is_pdf else "application/octet-stream",
-            content_disposition_type="inline" if is_pdf else "attachment",
+            media_type=media_type or "application/octet-stream",
+            content_disposition_type="inline" if media_type else "attachment",
         )

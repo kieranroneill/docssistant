@@ -24,6 +24,7 @@ export default {
     loadingConversations: 'Loading conversations…',
     newConversation: 'New conversation',
     openSidebar: 'Open conversations',
+    openSource: 'Open {{source}} in a new tab',
     page: 'page {{number}}',
     retry: 'Retry',
     send: 'Send message',

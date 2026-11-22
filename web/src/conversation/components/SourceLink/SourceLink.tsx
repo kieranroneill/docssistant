@@ -1,37 +1,28 @@
 import { type FC } from 'react';
+import { useTranslation } from 'react-i18next';
 
 // types
 import type { Props } from './types';
 
 // utilities
-import { formatSourceLabel } from './utilities';
-
-const classNames =
-  'inline-flex items-baseline gap-1 rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground no-underline break-words';
+import { createSourceUrl, formatSourceLabel } from './utilities';
 
 const SourceLink: FC<Props> = ({ source }) => {
+  const { t } = useTranslation();
+  // memos
   const label = formatSourceLabel(source);
-  const isUrl = /^https?:\/\//i.test(source.source);
-  const content = (
-    <>
+
+  return (
+    <a
+      aria-label={t('labels.openSource', { source: label })}
+      className="inline-flex items-baseline gap-1 rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground no-underline break-words hover:text-primary focus-visible:text-primary"
+      href={createSourceUrl(source)}
+      rel="noreferrer"
+      target="_blank"
+    >
       <span className="font-semibold text-foreground">[{source.reference}]</span> {label}
-    </>
+    </a>
   );
-
-  if (isUrl) {
-    return (
-      <a
-        className={`${classNames} hover:text-primary focus-visible:text-primary`}
-        href={source.source}
-        rel="noreferrer"
-        target="_blank"
-      >
-        {content}
-      </a>
-    );
-  }
-
-  return <span className={classNames}>{content}</span>;
 };
 
 SourceLink.displayName = 'SourceLink';

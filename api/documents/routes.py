@@ -13,7 +13,7 @@ from .dependencies import get_documents_path
 from .services import Service
 
 router = APIRouter(
-    prefix="/documents",
+    prefix="/api/documents",
     tags=["documents"],
 )
 

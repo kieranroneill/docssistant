@@ -8,7 +8,7 @@ from libs.application.dtos import Application
 from .responses import VersionModelResponse, VersionResponse
 
 router = APIRouter(
-    prefix="/versions",
+    prefix="/api/versions",
     tags=["versions"],
 )
 
