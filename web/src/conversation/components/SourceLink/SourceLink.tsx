@@ -1,32 +1,37 @@
 import { type FC } from 'react';
 
-// styles
-import styles from './SourceLink.module.css';
-
 // types
 import type { Props } from './types';
 
 // utilities
 import { formatSourceLabel } from './utilities';
 
+const classNames =
+  'inline-flex items-baseline gap-1 rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground no-underline break-words';
+
 const SourceLink: FC<Props> = ({ source }) => {
   const label = formatSourceLabel(source);
   const isUrl = /^https?:\/\//i.test(source.source);
   const content = (
     <>
-      <span className={styles.reference}>[{source.reference}]</span> {label}
+      <span className="font-semibold text-foreground">[{source.reference}]</span> {label}
     </>
   );
 
   if (isUrl) {
     return (
-      <a className={styles.sourceLink} href={source.source} rel="noreferrer" target="_blank">
+      <a
+        className={`${classNames} hover:text-primary focus-visible:text-primary`}
+        href={source.source}
+        rel="noreferrer"
+        target="_blank"
+      >
         {content}
       </a>
     );
   }
 
-  return <span className={styles.sourceLink}>{content}</span>;
+  return <span className={classNames}>{content}</span>;
 };
 
 SourceLink.displayName = 'SourceLink';

@@ -1,8 +1,8 @@
 import { type FC } from 'react';
 import { useTranslation } from 'react-i18next';
 
-// styles
-import styles from './ErrorBanner.module.css';
+// ui
+import Button from '@/platform/application/components/Button';
 
 // types
 import type { Props } from './types';
@@ -11,21 +11,21 @@ const ErrorBanner: FC<Props> = ({ message, onDismiss, onRetry }) => {
   const { t } = useTranslation();
 
   return (
-    <div className={styles.banner} role="alert">
-      <p className={styles.message}>{message}</p>
+    <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-4 py-2 text-destructive" role="alert">
+      <p className="flex-1 text-sm first-letter:uppercase">{message}</p>
 
       {(onRetry || onDismiss) && (
-        <div className={styles.actions}>
+        <div className="flex shrink-0 gap-1">
           {onRetry && (
-            <button className={styles.button} onClick={onRetry} type="button">
+            <Button onClick={onRetry} size="sm" type="button" variant="outline">
               {t('labels.retry')}
-            </button>
+            </Button>
           )}
 
           {onDismiss && (
-            <button className={styles.button} onClick={onDismiss} type="button">
+            <Button onClick={onDismiss} size="sm" type="button" variant="ghost">
               {t('labels.dismiss')}
-            </button>
+            </Button>
           )}
         </div>
       )}

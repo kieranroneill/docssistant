@@ -18,6 +18,7 @@ export default {
     closeSidebar: 'Close conversations',
     composerPlaceholder: 'Ask a question about your documents…',
     dismiss: 'Dismiss',
+    documentsMode: 'Documents',
     loadingConversation: 'Loading conversation…',
     loadingConversations: 'Loading conversations…',
     newConversation: 'New conversation',

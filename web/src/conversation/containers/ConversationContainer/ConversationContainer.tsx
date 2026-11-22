@@ -1,5 +1,6 @@
 import { type FC, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Menu } from 'lucide-react';
 
 // components
 import ConversationSidebar from '@/conversation/components/ConversationSidebar';
@@ -12,8 +13,8 @@ import MessageList from '@/conversation/components/MessageList';
 import useChat from '@/conversation/hooks/useChat';
 import useConversations from '@/conversation/hooks/useConversations';
 
-// styles
-import styles from './ConversationContainer.module.css';
+// ui
+import Button from '@/platform/application/components/Button';
 
 // types
 import type { Props } from './types';
@@ -40,7 +41,7 @@ const ConversationContainer: FC<Props> = ({ logger }) => {
   const mobileTitle = chat.conversation?.title ?? t('headings.emptyConversation');
 
   return (
-    <div className={styles.app}>
+    <div className="flex h-full overflow-hidden">
       <ConversationSidebar
         activeConversationId={chat.conversationId}
         conversations={conversations.conversations}
@@ -53,27 +54,32 @@ const ConversationContainer: FC<Props> = ({ logger }) => {
         onSelect={handleSelect}
       />
 
-      <div className={styles.main}>
-        <header className={styles.mobileHeader}>
-          <button
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex items-center gap-2 border-b border-border p-2 md:hidden">
+          <Button
             aria-controls="conversation-sidebar"
             aria-expanded={isSidebarOpen}
-            className={styles.menuButton}
             onClick={() => setIsSidebarOpen(true)}
+            size="icon"
             type="button"
+            variant="ghost"
           >
-            <span aria-hidden="true">☰</span>
-            <span className={styles.srOnly}>{t('labels.openSidebar')}</span>
-          </button>
+            <Menu aria-hidden="true" className="h-5 w-5" />
+            <span className="sr-only">{t('labels.openSidebar')}</span>
+          </Button>
 
-          <h1 className={styles.mobileTitle}>{mobileTitle}</h1>
+          <h1 className="m-0 truncate text-sm font-semibold">{mobileTitle}</h1>
         </header>
 
-        <div className={styles.panel}>
-          {chat.isLoading && <p className={styles.status}>{t('labels.loadingConversation')}</p>}
+        <div className="flex min-h-0 flex-1 flex-col">
+          {chat.isLoading && (
+            <p className="flex flex-1 items-center justify-center text-muted-foreground">
+              {t('labels.loadingConversation')}
+            </p>
+          )}
 
           {!chat.isLoading && chat.error && (
-            <div className={styles.panelError}>
+            <div className="p-4">
               <ErrorBanner message={t('captions.conversationLoadError')} onRetry={chat.reloadConversation} />
             </div>
           )}
@@ -92,6 +98,7 @@ const ConversationContainer: FC<Props> = ({ logger }) => {
         <MessageComposer
           disabled={chat.isSending}
           error={chat.sendError ? t('captions.composerSendError') : null}
+          logger={logger}
           onChange={chat.setDraft}
           onClearError={chat.clearSendError}
           onSubmit={chat.sendMessage}

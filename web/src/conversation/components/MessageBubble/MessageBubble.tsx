@@ -7,8 +7,8 @@ import SourceList from '../SourceList';
 // enums
 import { MessageRoleEnum } from '@/conversation/enums';
 
-// styles
-import styles from './MessageBubble.module.css';
+// ui
+import Message from '@/platform/application/components/Message';
 
 // types
 import type { Props } from './types';
@@ -16,21 +16,32 @@ import type { Props } from './types';
 const MessageBubble: FC<Props> = ({ content, model, role, sources = [] }) => {
   const { t } = useTranslation();
   const isUser = role === MessageRoleEnum.User;
-  const senderLabel = isUser ? t('labels.you') : t('labels.assistant');
+
+  if (isUser) {
+    return (
+      <Message className="justify-end">
+        <Message.Content>
+          <span className="sr-only">{t('labels.you')}: </span>
+          {content}
+        </Message.Content>
+      </Message>
+    );
+  }
 
   return (
-    <div className={`${styles.row} ${isUser ? styles.user : styles.assistant}`}>
-      <div>
-        <p className={styles.bubble}>
-          <span className={styles.srOnly}>{senderLabel}: </span>
+    <Message className="justify-start">
+      <Message.Avatar alt={t('labels.assistant')} delayMs={0} fallback="AI" src="" />
+
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <Message.Content className="bg-transparent p-0" markdown>
           {content}
-        </p>
+        </Message.Content>
 
-        {!isUser && sources.length > 0 && <SourceList sources={sources} />}
+        {sources.length > 0 && <SourceList sources={sources} />}
 
-        {!isUser && model && <p className={styles.meta}>{model}</p>}
+        {model && <p className="text-xs text-muted-foreground">{model}</p>}
       </div>
-    </div>
+    </Message>
   );
 };
 

@@ -1,8 +1,5 @@
 import { type FC } from 'react';
 
-// styles
-import styles from './ConversationListItem.module.css';
-
 // types
 import type { Props } from './types';
 
@@ -12,12 +9,14 @@ import { formatRelativeDate } from './utilities';
 const ConversationListItem: FC<Props> = ({ conversation, isActive, onSelect }) => (
   <button
     aria-current={isActive ? 'true' : undefined}
-    className={`${styles.item} ${isActive ? styles.active : ''}`}
+    className={`flex w-full flex-col items-start gap-0.5 rounded-md px-3 py-2 text-left hover:bg-accent ${
+      isActive ? 'bg-accent font-semibold' : ''
+    }`}
     onClick={() => onSelect(conversation.id)}
     type="button"
   >
-    <span className={styles.title}>{conversation.title}</span>
-    <span className={styles.date}>{formatRelativeDate(conversation.updatedAt)}</span>
+    <span className="w-full truncate text-sm">{conversation.title}</span>
+    <span className="text-xs text-muted-foreground">{formatRelativeDate(conversation.updatedAt)}</span>
   </button>
 );
 

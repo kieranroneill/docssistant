@@ -1,16 +1,13 @@
 import { type FC } from 'react';
 import { useTranslation } from 'react-i18next';
 
-// styles
-import styles from './EmptyConversationState.module.css';
-
 const EmptyConversationState: FC = () => {
   const { t } = useTranslation();
 
   return (
-    <div className={styles.container}>
-      <p className={styles.heading}>{t('headings.emptyConversation')}</p>
-      <p className={styles.caption}>{t('captions.emptyConversation')}</p>
+    <div className="flex flex-1 flex-col items-center justify-center gap-1 p-6 text-center text-muted-foreground">
+      <p className="text-base font-medium text-foreground">{t('headings.emptyConversation')}</p>
+      <p className="max-w-[40ch]">{t('captions.emptyConversation')}</p>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import { type FC, useEffect, useRef } from 'react';
+import { type FC } from 'react';
 
 // components
 import MessageBubble from '../MessageBubble';
@@ -7,37 +7,39 @@ import TypingIndicator from '../TypingIndicator';
 // enums
 import { MessageRoleEnum } from '@/conversation/enums';
 
-// styles
-import styles from './MessageList.module.css';
+// ui
+import ChatContainer from '@/platform/application/components/ChatContainer';
+import ScrollButton from '@/platform/application/components/ScrollButton';
 
 // types
 import type { Props } from './types';
 
 const MessageList: FC<Props> = ({ isSending, messages, pendingQuery }) => {
-  // refs
-  const bottomRef = useRef<HTMLDivElement | null>(null);
-  // effects
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: 'end' });
-  }, [messages.length, pendingQuery, isSending]);
-
   return (
-    <div className={styles.list}>
-      {messages.map((message) => (
-        <MessageBubble
-          content={message.content}
-          key={message.id}
-          model={message.model}
-          role={message.role}
-          sources={message.sources}
-        />
-      ))}
+    <div className="relative min-h-0 flex-1">
+      <ChatContainer className="h-full flex-col">
+        <ChatContainer.Content className="gap-4 p-4">
+          {messages.map((message) => (
+            <MessageBubble
+              content={message.content}
+              key={message.id}
+              model={message.model}
+              role={message.role}
+              sources={message.sources}
+            />
+          ))}
 
-      {pendingQuery && <MessageBubble content={pendingQuery} role={MessageRoleEnum.User} />}
+          {pendingQuery && <MessageBubble content={pendingQuery} role={MessageRoleEnum.User} />}
 
-      {isSending && <TypingIndicator />}
+          {isSending && <TypingIndicator />}
+        </ChatContainer.Content>
 
-      <div ref={bottomRef} />
+        <ChatContainer.ScrollAnchor />
+
+        <div className="absolute bottom-4 right-4">
+          <ScrollButton />
+        </div>
+      </ChatContainer>
     </div>
   );
 };
