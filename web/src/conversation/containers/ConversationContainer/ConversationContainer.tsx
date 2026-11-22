@@ -1,8 +1,8 @@
 import { type FC, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Menu } from 'lucide-react';
 
 // components
+import ConversationHeader from '@/conversation/components/ConversationHeader';
 import ConversationSidebar from '@/conversation/components/ConversationSidebar';
 import EmptyConversationState from '@/conversation/components/EmptyConversationState';
 import ErrorBanner from '@/conversation/components/ErrorBanner';
@@ -12,9 +12,6 @@ import MessageList from '@/conversation/components/MessageList';
 // hooks
 import useChat from '@/conversation/hooks/useChat';
 import useConversations from '@/conversation/hooks/useConversations';
-
-// ui
-import Button from '@/platform/application/components/Button';
 
 // types
 import type { Props } from './types';
@@ -38,7 +35,7 @@ const ConversationContainer: FC<Props> = ({ logger }) => {
     chat.selectConversation(null);
     setIsSidebarOpen(false);
   }, [chat]);
-  const mobileTitle = chat.conversation?.title ?? t('headings.emptyConversation');
+  const title = chat.conversation?.title ?? t('headings.emptyConversation');
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -56,21 +53,7 @@ const ConversationContainer: FC<Props> = ({ logger }) => {
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-2 border-b border-border p-2 md:hidden">
-          <Button
-            aria-controls="conversation-sidebar"
-            aria-expanded={isSidebarOpen}
-            onClick={() => setIsSidebarOpen(true)}
-            size="icon"
-            type="button"
-            variant="ghost"
-          >
-            <Menu aria-hidden="true" className="h-5 w-5" />
-            <span className="sr-only">{t('labels.openSidebar')}</span>
-          </Button>
-
-          <h1 className="m-0 truncate text-sm font-semibold">{mobileTitle}</h1>
-        </header>
+        <ConversationHeader isSidebarOpen={isSidebarOpen} onOpenSidebar={() => setIsSidebarOpen(true)} title={title} />
 
         <div className="flex min-h-0 flex-1 flex-col">
           {chat.isLoading && (

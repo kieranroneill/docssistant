@@ -15,6 +15,7 @@ export default {
   },
   labels: {
     assistant: 'Assistant',
+    changeTheme: 'Change theme, currently {{theme}}',
     closeSidebar: 'Close conversations',
     composerPlaceholder: 'Ask a question about your documents…',
     dismiss: 'Dismiss',
@@ -27,6 +28,9 @@ export default {
     retry: 'Retry',
     send: 'Send message',
     sending: 'Sending…',
+    themeDark: 'Dark',
+    themeLight: 'Light',
+    themeSystem: 'System',
     version: 'v{{version}}',
     you: 'You',
   },

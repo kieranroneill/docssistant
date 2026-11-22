@@ -59,7 +59,7 @@ const ConversationSidebar: FC<Props> = ({
         id="conversation-sidebar"
       >
         <div className="border-b border-border p-4">
-          <h1 className="m-0 truncate text-lg font-semibold">{t('titles.app')}</h1>
+          <p className="m-0 truncate text-lg font-semibold">{t('titles.app')}</p>
           {version && (
             <p className="m-0 mt-0.5 truncate text-xs text-muted-foreground">
               {t('labels.version', { version: version.version })}

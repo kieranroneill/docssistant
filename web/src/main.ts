@@ -15,7 +15,12 @@ import { LogLevelEnum } from '@/platform/logging/utilities/createLogger';
 import { en } from '@/platform/translations';
 
 // utilities
+import applyTheme from '@/platform/application/utilities/applyTheme';
 import createLogger from '@/platform/logging/utilities/createLogger';
+import readStoredTheme from '@/platform/application/utilities/readStoredTheme';
+
+// applied before the first render so a stored dark preference does not flash the light theme
+applyTheme(readStoredTheme());
 
 export async function onDOMContentLoaded(): Promise<void> {
   const logger = createLogger((import.meta.env.VITE_LOG_LEVEL as LogLevelEnum) ?? LogLevelEnum.Error);
