@@ -27,6 +27,13 @@
 - [1. Overview](#-1-overview)
   - [1.1. Architecture](#11-architecture)
   - [1.2. Components](#12-components)
+    - [1.2.1. `web` — the chat interface](#121-web--the-chat-interface)
+    - [1.2.2. `api` — retrieval and generation](#122-api--retrieval-and-generation)
+    - [1.2.3. `indexer` — document ingestion](#123-indexer--document-ingestion)
+    - [1.2.4. `ollama` — model serving](#124-ollama--model-serving)
+    - [1.2.5. `chroma` — vector store](#125-chroma--vector-store)
+    - [1.2.6. `postgres` — system of record](#126-postgres--system-of-record)
+    - [1.2.7. `libs/` — shared code](#127-libs--shared-code)
   - [1.3. How a question is answered](#13-how-a-question-is-answered)
   - [1.4. How a document is indexed](#14-how-a-document-is-indexed)
   - [1.5. Project structure](#15-project-structure)
@@ -66,42 +73,76 @@ Everything runs locally. The chat and embedding models are served by Ollama in a
 ### 1.1. Architecture
 
 ```mermaid
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+    "background": "#ffffff",
+    "primaryColor": "#ffffff",
+    "primaryTextColor": "#0f172a",
+    "primaryBorderColor": "#94a3b8",
+    "lineColor": "#64748b",
+    "clusterBkg": "#fef9c3",
+    "clusterBorder": "#eab308",
+    "clusterTextColor": "#0f172a"
+  },
+  "flowchart": {
+    "curve": "step",
+    "nodeSpacing": 45,
+    "rankSpacing": 60,
+    "padding": 14
+  }
+}}%%
 flowchart TB
-    user([User])
+    user([<b>User</b>]):::user
 
     subgraph client["Browser"]
-        web["<b>web</b><br/>[:8080]/app"]
+        web["<b>web</b><br/>[:8080]"]:::web
     end
 
     subgraph runtime["Application Runtimes"]
-        api["<b>api</b><br/>[:3000]"]
-        indexer["<b>indexer<br/>[:]</b>"]
+        api["<b>api</b><br/>[:3000]"]:::api
+        indexer["<b>indexer</b><br/>[:]"]:::indexer
     end
 
     subgraph models["Models"]
-        ollama["<b>ollama</b><br/>qwen3:4b (chat)<br/>nomic-embed-text (embeddings)<br/>[:11434]"]
+        ollama["<b>ollama</b><br/>[:11434]"]:::ollama
     end
 
     subgraph storage["Storage"]
-        postgres[("<b>postgres</b><br/>conversations, messages,<br/>sources, document versions<br/>[:5432]")]
-        chroma[("<b>chroma</b><br/>chunk embeddings<br/>HNSW / cosine<br/>[:8000]")]
-        documents["<b>.documents/</b><br/>source files<br/>(read-only mount)"]
+        postgres[("<b>postgres</b><br/>[:5432]")]:::postgres
+        chroma[("<b>chroma</b><br/>[:8000]")]:::chroma
+        documents["<b>.documents/</b>"]:::documents
     end
 
     user -->|"asks a question"| web
     web -->|"/api/* (proxied)"| api
 
-    api -->|"embed query, generate answer"| ollama
-    api -->|"read conversations,<br/>active doc versions"| postgres
-    api -->|"vector search<br/>(filtered to active versions)"| chroma
-    api -->|"serve cited file"| documents
+    api -->|"embed query"| ollama
+    api -->|"read conversations"| postgres
+    api -->|"vector search"| chroma
+    api -->|"serve document"| documents
 
-    documents -->|"watched for changes"| indexer
+    documents -->|"watch for changes"| indexer
     indexer -->|"embed chunks"| ollama
     indexer -->|"upsert chunks"| chroma
     indexer -->|"publish version"| postgres
 
     web -.->|"open citation"| api
+
+    style client fill:#fef9c3,stroke:#eab308,stroke-width:2px,color:#713f12
+    style runtime fill:#fef9c3,stroke:#eab308,stroke-width:2px,color:#713f12
+    style models fill:#fef9c3,stroke:#eab308,stroke-width:2px,color:#713f12
+    style storage fill:#fef9c3,stroke:#eab308,stroke-width:2px,color:#713f12
+
+    classDef user fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#78350f
+    classDef web fill:#dbeafe,stroke:#3b82f6,stroke-width:2px,color:#1e3a8a
+    classDef api fill:#dcfce7,stroke:#22c55e,stroke-width:2px,color:#14532d
+    classDef indexer fill:#e0f2fe,stroke:#0ea5e9,stroke-width:2px,color:#075985
+    classDef ollama fill:#ede9fe,stroke:#8b5cf6,stroke-width:2px,color:#4c1d95
+    classDef postgres fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#7f1d1d
+    classDef chroma fill:#fce7f3,stroke:#ec4899,stroke-width:2px,color:#831843
+    classDef documents fill:#e2e8f0,stroke:#64748b,stroke-width:2px,color:#1e293b
 ```
 
 <sup>[Back to top ^][table-of-contents]</sup>
@@ -110,25 +151,33 @@ flowchart TB
 
 Each box above is a Compose service, defined in [`deployments/compose.development.yml`](./deployments/compose.development.yml) for development and [`deployments/compose.yml`](./deployments/compose.yml) for production, built from a Dockerfile in [`build/package/`](./build/package).
 
-#### `web` — the chat interface
+<sup>[Back to top ^][table-of-contents]</sup>
+
+#### 1.2.1. `web` — the chat interface
 
 A React 19 + TypeScript single-page app built with Vite and styled with Tailwind CSS v4. It is served under the `/app` base path and reaches the API through a same-origin reverse proxy, so the browser only ever sees `/api/*` requests on its own origin and there is no CORS configuration to maintain. In development that proxy is Vite's dev server; in production the built assets are served by nginx, which proxies `/api` to the API container ([§2.6](#26-running-in-production-mode)). The frontend itself is identical either way — it just calls relative paths.
 
 The UI renders a conversation, streams nothing (responses are returned whole), and shows each assistant message's citations as footnote-style links. Clicking a citation hits `GET /api/documents/{document_id}`, which returns the original file so the user can check the claim against the source. Code is organised by feature (`web/src/conversation/`) over a shared platform layer (`web/src/platform/`); the conventions are documented in [AGENTS.md](./AGENTS.md).
 
-#### `api` — retrieval and generation
+<sup>[Back to top ^][table-of-contents]</sup>
+
+#### 1.2.2. `api` — retrieval and generation
 
 A FastAPI application using a strict three-layer split: routes handle HTTP, services hold the application logic, and repositories own persistence. Long-lived clients (Chroma, Postgres, the chat and embedding agents) are constructed once in the app's `lifespan` and attached to `app.state`, then handed to services through FastAPI dependencies — so a service never constructs its own I/O and can be tested against a fake.
 
 It exposes conversation CRUD, the two chat entrypoints (start a new conversation, or continue an existing one), and the document-serving endpoint used by citations.
 
-#### `indexer` — ingestion
+<sup>[Back to top ^][table-of-contents]</sup>
+
+####  1.2.3. `indexer` — document ingestion
 
 A standalone worker. It performs one full indexing pass at startup and then watches `.documents/`, re-running the pass (debounced) whenever a supported file changes. Supported extensions are `.md`, `.pdf` and `.txt`.
 
 Running ingestion as a separate process rather than an upload endpoint keeps slow, failure-prone work off the request path: a malformed PDF or a cold embedding model degrades indexing without affecting anyone who is mid-conversation.
 
-#### `ollama` — model serving
+<sup>[Back to top ^][table-of-contents]</sup>
+
+####  1.2.4. `ollama` — model serving
 
 Serves both models the system needs: `qwen3:4b` for chat and `nomic-embed-text` for embeddings. The container's entrypoint pulls each model on first boot if it isn't already present, so there is no manual setup step — but the first `make dev` will take several minutes while it downloads.
 
@@ -136,19 +185,25 @@ Models persist to `.ollama/` on the host, so subsequent starts are fast.
 
 Keeping chat and embeddings behind one interface means swapping either model is a config change (`OLLAMA_CHAT_MODEL` / `OLLAMA_EMBEDDING_MODEL`) rather than a code change. Changing the embedding model changes the chunk fingerprint, which triggers a clean re-index automatically — see [§1.4](#14-how-a-document-is-indexed).
 
-#### `chroma` — vector store
+<sup>[Back to top ^][table-of-contents]</sup>
+
+####  1.2.5. `chroma` — vector store
 
 Holds one collection (`document_chunks_nomic_v1`, cosine distance, HNSW index) of chunk embeddings. Each chunk carries `document_id`, `version`, `source`, `chunk_index` and, for PDFs, `page_number` as metadata. The version in the metadata is what makes safe, atomic re-indexing possible: new chunks are written alongside the old ones and only become visible when their version is published.
 
 The collection name encodes the embedding model, so switching models means a new collection rather than a corrupted mix of incompatible vectors.
 
-#### `postgres` — system of record
+<sup>[Back to top ^][table-of-contents]</sup>
+
+#### 1.2.6. `postgres` — system of record
 
 Stores conversations, their messages, each message's citations, and per-message token usage — plus the `document_versions` table that decides which chunks in Chroma are live. Accessed through SQLAlchemy's async engine; schema changes are paired with Alembic revisions in [`migrations/versions/`](./migrations/versions).
 
 Postgres is the authority on _which_ version of a document is active, and Chroma is the index of _content_. Splitting it this way means a transactional guarantee (exactly one active version per document) lives in the store that can actually provide it.
 
-#### `libs/` — shared code
+<sup>[Back to top ^][table-of-contents]</sup>
+
+####  1.2.7. `libs/` — shared code
 
 Infrastructure and domain code used by both the API and the indexer: `libs/agents/` (chat and embedding clients behind abstract base classes), `libs/chroma/`, `libs/postgres/`, `libs/documents/` (chunk and version DTOs and repositories), `libs/logging/`, `libs/defaults/` (the `BaseService` / `BaseRepository` / `BaseController` classes features extend) and `libs/application/` (cross-cutting enums, errors and dependency providers).
 
@@ -159,10 +214,35 @@ The abstract agent classes (`AbstractChatAgent`, `AbstractEmbeddingsAgent`) are 
 ### 1.3. How a question is answered
 
 ```mermaid
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+    "background": "#ffffff",
+    "primaryColor": "#ffffff",
+    "primaryTextColor": "#0f172a",
+    "primaryBorderColor": "#94a3b8",
+    "lineColor": "#64748b",
+    "actorBkg": "#ffffff",
+    "actorBorder": "#94a3b8",
+    "actorTextColor": "#0f172a",
+    "signalColor": "#334155",
+    "signalTextColor": "#334155"
+  },
+  "sequence": {
+    "mirrorActors": false,
+    "boxMargin": 10,
+    "messageMargin": 40,
+    "actorMargin": 50,
+    "width": 180,
+    "height": 50,
+    "useMaxWidth": true
+  }
+}}%%
 sequenceDiagram
     autonumber
     participant W as web
-    participant A as api (service)
+    participant A as api
     participant O as ollama
     participant P as postgres
     participant C as chroma
@@ -209,23 +289,58 @@ A few decisions worth calling out:
 ### 1.4. How a document is indexed
 
 ```mermaid
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+    "background": "#ffffff",
+    "primaryColor": "#ffffff",
+    "primaryTextColor": "#0f172a",
+    "primaryBorderColor": "#94a3b8",
+    "lineColor": "#64748b",
+    "clusterBkg": "#fef9c3",
+    "clusterBorder": "#eab308"
+  },
+  "flowchart": {
+    "curve": "step",
+    "nodeSpacing": 40,
+    "rankSpacing": 55,
+    "padding": 14
+  }
+}}%%
 flowchart TB
     start["file added/changed in .documents/"] --> extract
 
-    extract["extract text<br/>pdfplumber per page, or read as UTF-8"] --> split
-    split["split<br/>RecursiveCharacterTextSplitter<br/>1500 chars, 200 overlap"] --> fingerprint
-    fingerprint["fingerprint<br/>sha256(embedding model + chunk params + content)"] --> decide
+    extract["text extracted"] --> split
+    split["text split into arbitrary chunks<br/>(1500 chars, 200 overlap)"] --> fingerprint
+    fingerprint["chunks are fingerprinted<br/>sha256(model name + chunk params + content)"] --> decide
 
-    decide{"fingerprint already<br/>indexed?"}
+    decide{"is the fingerprint already<br/>indexed?"}
     decide -->|"yes, and active"| skip["document remains unchanged"]
     decide -->|"yes, but inactive"| reactivate["re-publish existing version"]
     decide -->|"no"| embed
 
     embed["embed in batches of 32"] --> upsert
     upsert["upsert chunks to chroma<br/>id = document_id:fingerprint:index"] --> publish
-    publish["publish version in postgres<br/>(insert inactive → deactivate old → activate new)"] --> live["new version is live"]
+    publish["publish version in postgres"] --> live["new version live"]
 
     reactivate --> live
+
+    classDef trigger fill:#ffedd5,stroke:#f97316,stroke-width:2px,color:#7c2d12
+    classDef process fill:#e0f2fe,stroke:#0ea5e9,stroke-width:2px,color:#075985
+    classDef decision fill:#fef9c3,stroke:#eab308,stroke-width:2px,color:#713f12
+    classDef unchanged fill:#f1f5f9,stroke:#94a3b8,stroke-width:2px,color:#334155
+    classDef reactivate fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#78350f
+    classDef embed fill:#ede9fe,stroke:#8b5cf6,stroke-width:2px,color:#4c1d95
+    classDef vector fill:#fce7f3,stroke:#ec4899,stroke-width:2px,color:#831843
+    classDef database fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#7f1d1d
+    classDef success fill:#dcfce7,stroke:#22c55e,stroke-width:2px,color:#14532d
+
+    linkStyle 0,1,2,3 stroke:#0ea5e9,stroke-width:2px
+    linkStyle 4 stroke:#94a3b8,stroke-width:2px
+    linkStyle 5 stroke:#f59e0b,stroke-width:2px
+    linkStyle 6,7,8,9 stroke:#8b5cf6,stroke-width:2px
+    linkStyle 10 stroke:#22c55e,stroke-width:2px
 ```
 
 **Chunking.** 1500 characters with 200 of overlap, split recursively on paragraph and sentence boundaries. PDFs are split _per page_ first, so a chunk never straddles a page and every chunk can carry a real page number for citation — the citation quality is the reason for the per-page pass, not the text quality. Plain text and Markdown have no page concept and are split as a single stream. These values are currently hardcoded (`indexer/services.py`) and are the most obvious thing to tune.
